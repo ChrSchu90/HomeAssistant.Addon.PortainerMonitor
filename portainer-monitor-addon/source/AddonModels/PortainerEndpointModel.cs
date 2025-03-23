@@ -22,6 +22,10 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
 
     private readonly ConcurrentDictionary<string, DockerContainerModel> _containers = new();
     private readonly HaSensor<string> _sensorDockerVersion;
+    private readonly HaSensor<int> _sensorAmountContainers;
+    private readonly HaSensor<int> _sensorRunningCnt;
+    private readonly HaSensor<int> _sensorPausedCnt;
+    private readonly HaSensor<int> _sensorStoppedCnt;
 
     #endregion
 
@@ -36,9 +40,22 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
         ID = endpoint.Id!.Value;
         Name = endpoint.Name;
         LatestInfo = endpoint;
-        _sensorDockerVersion = CreateSensorEntity<string>("dockerversion_sensor", "Docker Version");
+
+        _sensorDockerVersion = CreateSensorEntity<string>("dockerversion_sensor", $"{Name} Docker Version");
         _sensorDockerVersion.Icon = "mdi:information-outline";
         _sensorDockerVersion.StateClass = null;
+
+        _sensorAmountContainers = CreateSensorEntity<int>("amntcontainers_sensor", $"{Name} Containers");
+        _sensorAmountContainers.Icon = "mdi:docker";
+
+        _sensorRunningCnt = CreateSensorEntity<int>("runningcnt_sensor", $"{Name} Running");
+        _sensorRunningCnt.Icon = "mdi:play";
+
+        _sensorPausedCnt = CreateSensorEntity<int>("pausedcnt_sensor", $"{Name} Paused");
+        _sensorPausedCnt.Icon = "mdi:pause";
+
+        _sensorStoppedCnt = CreateSensorEntity<int>("stoppedcnt_sensor", $"{Name} Stopped");
+        _sensorStoppedCnt.Icon = "mdi:stop";
     }
 
     #endregion
@@ -79,10 +96,16 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     #region Public Methods
 
     /// <inheritdoc />
-    internal override Task OnUpdateStatesAsync(bool force, Version apiVersion)
+    internal override async Task OnUpdateStatesAsync(bool force, Version apiVersion)
     {
         _sensorDockerVersion.Value = LatestInfo.Snapshots.LastOrDefault()?.DockerVersion ?? string.Empty;
-        return UpdateContainersAsync(force, apiVersion);
+
+        await UpdateContainersAsync(force, apiVersion).ConfigureAwait(false);
+
+        _sensorAmountContainers.Value = _containers.Count;
+        _sensorRunningCnt.Value = _containers.Values.Count(c => c.ContainerState is ContainerState.Running);
+        _sensorPausedCnt.Value = _containers.Values.Count(c => c.ContainerState is ContainerState.Paused);
+        _sensorStoppedCnt.Value = _containers.Values.Count(c => c.ContainerState is ContainerState.Exited);
     }
 
     /// <inheritdoc />

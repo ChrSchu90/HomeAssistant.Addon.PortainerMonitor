@@ -3,8 +3,8 @@
 ## Features ✔️
 - Update Check
 - Sensor for actual Portainer version
-- Sensor for actual Docker version
-- Sensors with amount of `running`, `stopped`, `paused` and `total` containers
+- Sensor for actual Docker version per Endpoint
+- Sensors with amount of `running`, `stopped`, `paused` and `total` containers per Endpoint and Portainer instance 
 - Sensors with state of each container (`Created`, `Restarting` ,`Running` ,`Removing` ,`Paused` ,`Exited` ,`Dead`)
 - Toggle switch to `start` or `stop` each container
 - Buttons to `pause` or `restart` each container

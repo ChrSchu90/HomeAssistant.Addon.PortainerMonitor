@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.4
+- Add Sensors with amount of `running`, `stopped`, `paused` and `total` containers per Endpoint
+
 ## 1.0.3
 - Update sensor, switch and button icons
 
