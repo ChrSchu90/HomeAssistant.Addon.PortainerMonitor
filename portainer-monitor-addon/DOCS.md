@@ -25,7 +25,7 @@
 4. Refresh Page (`F5`)
 5. Store should show the addon and you can install it
 6. Click on the "INSTALL" button
-7. Add the `Portainer Configurations` inside the options, nothing more is to do (MQTT details are optional and will be taken via Home Assistant API). 
+7. Add the `Portainer Configurations` inside the options, nothing more is to do (MQTT details are optional and will be taken via Home Assistant API). You can also use secrets e.g. ` token: "!secret token_portainer_server1"`
    >``` yaml
    >- id: server1
    >  display_name: 'Server 1'
