@@ -32,19 +32,19 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     {
         ID = container.Id;
         LatestInfo = container;
-        _switchStartStop = CreateSwitchEntity("startstop_switch", Name);
+        _switchStartStop = CreateSwitchEntity("startstop_switch", $"{Endpoint.Name} {Name}");
         _switchStartStop.SwitchCommandReceived += OnSwitchCommandReceived;
         _switchStartStop.Icon = "mdi:docker";
 
-        _buttonPause = CreateButtonEntity("pause_button", $"Pause {Name}");
+        _buttonPause = CreateButtonEntity("pause_button", $"{Endpoint.Name} {Name}");
         _buttonPause.ButtonCommandReceived += OnPauseCommandReceived;
         _buttonPause.Icon = "mdi:pause";
 
-        _buttonRestart = CreateButtonEntity("restart_button", $"Restart {Name}");
+        _buttonRestart = CreateButtonEntity("restart_button", $"{Endpoint.Name} {Name}");
         _buttonRestart.ButtonCommandReceived += OnRestartCommandReceived;
         _buttonRestart.Icon = "mdi:restart";
 
-        _sensorState = CreateSensorEntity<ContainerState>(HaEntityBase.BuildID("status_sensor"), $"{Name} State");
+        _sensorState = CreateSensorEntity<ContainerState>(HaEntityBase.BuildID("status_sensor"), $"{Endpoint.Name} {Name}");
         _sensorState.Icon = "mdi:state-machine";
         _sensorState.StateClass = null;
     }

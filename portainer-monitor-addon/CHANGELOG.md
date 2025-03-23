@@ -1,4 +1,6 @@
 # Changelog
+## 1.0.4
+- Improved entity label naming
 
 ## 1.0.4
 - Add Sensors with amount of `running`, `stopped`, `paused` and `total` containers per Endpoint

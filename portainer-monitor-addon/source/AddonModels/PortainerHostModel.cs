@@ -51,7 +51,7 @@ internal class PortainerHostModel : ModelBase
         _sensorVersion.PictureUrl = "https://portainer-io-assets.sfo2.cdn.digitaloceanspaces.com/logos/portainer.png";
         _sensorVersion.StateClass = null;
 
-        _sensorAmountContainers = CreateSensorEntity<int>("amntcontainers_sensor", "Total");
+        _sensorAmountContainers = CreateSensorEntity<int>("amntcontainers_sensor", "Containers");
         _sensorAmountContainers.Icon = "mdi:docker";
 
         _sensorRunningCnt = CreateSensorEntity<int>("runningcnt_sensor", "Running");
