@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.3
+- Update sensor, switch and button icons
+
 ## 1.0.2
 - Add `Docker Version` sensor for each Endpoint
 - Changed udpate label of Portainer update sensor from `Update Available` to `Update`

@@ -38,14 +38,14 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
 
         _buttonPause = CreateButtonEntity("pause_button", $"Pause {Name}");
         _buttonPause.ButtonCommandReceived += OnPauseCommandReceived;
-        _buttonPause.Icon = "mdi:docker";
+        _buttonPause.Icon = "mdi:pause";
 
         _buttonRestart = CreateButtonEntity("restart_button", $"Restart {Name}");
         _buttonRestart.ButtonCommandReceived += OnRestartCommandReceived;
-        _buttonRestart.Icon = "mdi:docker";
+        _buttonRestart.Icon = "mdi:restart";
 
         _sensorState = CreateSensorEntity<ContainerState>(HaEntityBase.BuildID("status_sensor"), $"{Name} State");
-        _sensorState.Icon = "mdi:docker";
+        _sensorState.Icon = "mdi:state-machine";
         _sensorState.StateClass = null;
     }
 

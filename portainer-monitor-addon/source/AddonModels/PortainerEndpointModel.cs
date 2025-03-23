@@ -37,7 +37,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
         Name = endpoint.Name;
         LatestInfo = endpoint;
         _sensorDockerVersion = CreateSensorEntity<string>("dockerversion_sensor", "Docker Version");
-        _sensorDockerVersion.Icon = "mdi:docker";
+        _sensorDockerVersion.Icon = "mdi:information-outline";
         _sensorDockerVersion.StateClass = null;
     }
 

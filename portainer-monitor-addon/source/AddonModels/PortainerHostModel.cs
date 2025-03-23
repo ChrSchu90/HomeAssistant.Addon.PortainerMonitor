@@ -55,13 +55,13 @@ internal class PortainerHostModel : ModelBase
         _sensorAmountContainers.Icon = "mdi:docker";
 
         _sensorRunningCnt = CreateSensorEntity<int>("runningcnt_sensor", "Running");
-        _sensorRunningCnt.Icon = "mdi:docker";
+        _sensorRunningCnt.Icon = "mdi:play";
 
         _sensorPausedCnt = CreateSensorEntity<int>("pausedcnt_sensor", "Paused");
-        _sensorPausedCnt.Icon = "mdi:docker";
+        _sensorPausedCnt.Icon = "mdi:pause";
 
         _sensorStoppedCnt = CreateSensorEntity<int>("stoppedcnt_sensor", "Stopped");
-        _sensorStoppedCnt.Icon = "mdi:docker";
+        _sensorStoppedCnt.Icon = "mdi:stop";
     }
 
     #endregion
