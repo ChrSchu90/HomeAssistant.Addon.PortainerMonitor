@@ -110,13 +110,13 @@ public class PortainerDockerSnapshot {
     /// Gets or Sets TotalCPU
     /// </summary>
     [JsonPropertyName("TotalCPU")]
-    public int? TotalCPU { get; set; }
+    public long? TotalCPU { get; set; }
 
     /// <summary>
     /// Gets or Sets TotalMemory
     /// </summary>
     [JsonPropertyName("TotalMemory")]
-    public int? TotalMemory { get; set; }
+    public long? TotalMemory { get; set; }
 
     /// <summary>
     /// Gets or Sets UnhealthyContainerCount
