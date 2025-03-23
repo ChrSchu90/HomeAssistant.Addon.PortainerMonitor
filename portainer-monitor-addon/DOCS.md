@@ -81,24 +81,24 @@ services:
 > [!NOTE]
 > MQTT details are optional and will be taken via Home Assistant API, only reqired for `Standalone` installations
 
-| Name              | Required   | Default       | Description                                                                 | Limits                                                    |
-| ----------------- | ---------- | ------------- | --------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Name              | Required   | Default       | Description                                                                 | Limits                                                     |
+| ----------------- | ---------- | ------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | log_level         | &#10007;   | `Information` | Log output level (⚠️ `Verbose` could contain security critical information!) | `Verbose` `Debug` `Information` `Warning` `Error` `Fatal` |
-| update_interval   | &#10007;   | `5`           | Update interval in seconds                                                  | `1` - `65535`                                             |
-| mqtt_host         | (&#10003;) |               | Hostname or IP of the MQTT Broker                                           | `1` - `65535`                                             |
-| mqtt_port         | (&#10003;) | `1883`        | Port of the MQTT Borker                                                     | `1` - `65535`                                             |
-| mqtt_user         | (&#10003;) |               | User name for MQTT Broker authentication                                    |                                                           |
-| mqtt_password     | (&#10003;) |               | User password for MQTT Broker authentication                                |                                                           |
-| mqtt_tls_enabled  | &#10007;   | `false`       | Use TLS for MQTT connection                                                 | `true` / `false`                                          |
-| mqtt_tls_validate | &#10007;   | `false`       | Validate MQTT connection TLS certificate                                    | `true` / `false`                                          |
-| portainer_configs | &#10003;   |               | List of Portainer configurations                                            |                                                           |
+| update_interval   | &#10007;   | `5`           | Update interval in seconds                                                  | `1` - `120`                                                |
+| mqtt_host         | (&#10003;) |               | Hostname or IP of the MQTT Broker                                           |                                                            |
+| mqtt_port         | (&#10003;) | `1883`        | Port of the MQTT Borker                                                     | `1` - `65535`                                              |
+| mqtt_user         | (&#10003;) |               | User name for MQTT Broker authentication                                    |                                                            |
+| mqtt_password     | (&#10003;) |               | User password for MQTT Broker authentication                                |                                                            |
+| mqtt_tls_enabled  | &#10007;   | `false`       | Use TLS for MQTT connection                                                 | `true` / `false`                                           |
+| mqtt_tls_validate | &#10007;   | `false`       | Validate MQTT connection TLS certificate                                    | `true` / `false`                                           |
+| portainer_configs | &#10003;   |               | List of Portainer configurations                                            |                                                            |
 
 #### Portainer Config
 | Name              | Required   | Default       | Description                                                                             | Limits                                                    |
 | ----------------- | ---------- | ------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| id                | &#10003;   |               | Used to create the mqtt IDs                                                             | only `a-z`, `0-9`  and `_` allowed  |
-| display_name      | &#10003;   |               | Displayed name inside HA                                                                |                                             |
-| host              | &#10003;   |               | Hostname or IP of the Portainer API endpoint                                            | `1` - `65535`                                             |
+| id                | &#10003;   |               | Used to create the mqtt IDs                                                             | only `a-z`, `0-9`  and `_` allowed                        |
+| display_name      | &#10003;   |               | Displayed name inside HA                                                                |                                                           |
+| host              | &#10003;   |               | Hostname or IP of the Portainer API endpoint                                            |                                                           |
 | port              | &#10007;   | `9443`        | Port of the Portainer API endpoint                                                      | `1` - `65535`                                             |
 | token             | &#10003;   |               | [Portainer Access Token](https://docs.portainer.io/api/access#creating-an-access-token) |                                                           |
 | tls_enabled       | &#10007;   | `true`        | Use TLS for Portainer API connection                                                    | `true` / `false`                                          |

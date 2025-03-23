@@ -6,10 +6,8 @@ on:
     branches:
       - '**'
     paths-ignore:
-      - '*.md'
-      - '*.png'
-    tags:
-      - 'v*'
+      - '**/*.md'
+      - '**/*.png'
   pull_request:
     branches:
       - 'main'
