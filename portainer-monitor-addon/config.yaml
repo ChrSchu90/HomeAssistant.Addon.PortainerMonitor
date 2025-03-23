@@ -1,0 +1,43 @@
+name: "Portainer Monitor"
+version: "1.0.0"
+slug: "portainer-monitor-addon"
+description: "Portainer addon to access Docker information and control containers via Portainer API"
+url: "https://github.com/ChrSchu90/HomeAssistant.Addon.PortainerMonitor"
+image: "ghcr.io/chrschu90/homeassistant-portainer-monitor-{arch}"
+arch:
+  - amd64
+  - armv7
+  - aarch64
+init: false
+discovery: 
+    - "mqtt"
+services:
+    - "mqtt:want"
+options:
+  log_level: Information
+  update_interval: 5
+  portainer_configs:
+    - id: portainer1
+      display_name: 'Portainer 1'
+      host: '192.168.10.123'
+      port: 9443
+      token: 'ptr_...'
+      tls_enabled: true
+      tls_validate: false 
+schema:
+  log_level: list(Verbose|Debug|Information|Warning|Error|Fatal)
+  update_interval: int(1,120)
+  mqtt_host: str?
+  mqtt_port: int(1,65535)?
+  mqtt_user: str?
+  mqtt_password: password?
+  mqtt_tls_enabled: bool?
+  mqtt_tls_validate: bool?
+  portainer_configs:
+    - id: str
+      display_name: str
+      host: str
+      port: int(1,65535)
+      token: str
+      tls_enabled: bool
+      tls_validate: bool 

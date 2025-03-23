@@ -1,0 +1,122 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+    paths-ignore:
+      - '*.md'
+      - '*.png'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - 'main'
+
+env:
+  NET_SOLUTION: portainer-monitor-addon/HomeAssistant.Addon.PortainerMonitor.sln
+  NET_PROJECT: portainer-monitor-addon/source/HomeAssistant.Addon.PortainerMonitor.csproj
+  NET_PUBLISH_DIR: portainer-monitor-addon/source/bin/publish/
+  NET_BUILD_CONFIGURATION: Release
+  ADDON_CFG_FILE: portainer-monitor-addon/config.yaml
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: "amd64"
+            rid: "linux-musl-x64"
+          - arch: "armv7"
+            rid: "linux-musl-arm"
+          - arch: "aarch64"
+            rid: "linux-musl-arm64"
+    permissions:
+      contents: write
+      id-token: write
+      packages: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+    
+    - name: Get Addon Info
+      id: addon
+      run: |
+          version=$(cat ${{ env.ADDON_CFG_FILE }} | grep version | grep -P -o "[\d\.]*")
+          echo "version=$version" >> $GITHUB_OUTPUT
+          tag="${{ matrix.arch }}-$version"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          if [ $(git tag -l "$tag") ]; then
+            echo "version_updated=false" >> $GITHUB_OUTPUT
+          else
+            echo "version_updated=true" >> $GITHUB_OUTPUT
+          fi
+    
+    - name: .NET Setup
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+    
+    - name: .NET Restore
+      run: dotnet restore ${{ env.NET_SOLUTION }}
+
+    - name: .NET Build
+      run: dotnet build ${{ env.NET_SOLUTION }} --verbosity normal --no-restore --configuration ${{ env.NET_BUILD_CONFIGURATION }} -p:Version=${{ steps.addon.outputs.version }}
+
+    - name: .NET Test
+      run: dotnet test ${{ env.NET_SOLUTION }} --verbosity normal --no-restore --no-build --configuration ${{ env.NET_BUILD_CONFIGURATION }}
+
+    - name: .NET Publish
+      run: dotnet publish ${{ env.NET_PROJECT }} --verbosity normal --configuration ${{ env.NET_BUILD_CONFIGURATION }} -r ${{ matrix.rid }} -p:DebugType=embedded -p:PublishSingleFile=true -p:Version=${{ steps.addon.outputs.version }} --self-contained -o ${{ env.NET_PUBLISH_DIR }}${{ matrix.arch }}
+
+    - name: Docker Login
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}        
+
+    - name: Container Test Build
+      if: ${{ github.ref != 'refs/heads/main' || steps.addon.outputs.version_updated != 'true' }}
+      uses: home-assistant/builder@2025.03.0
+      with:
+        args: |
+          --${{ matrix.arch }} \
+          --test \
+          --no-cache \
+          --no-latest \
+          --target portainer-monitor-addon
+
+    - name: Container Release Build
+      id: container_release
+      if: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
+      uses: home-assistant/builder@2025.03.0
+      with:
+        args: |
+          --${{ matrix.arch }} \
+          --no-cache \
+          --docker-hub ghcr.io/${{ github.repository_owner }} \
+          --target portainer-monitor-addon
+
+    - name: Generate Release Tag
+      if: ${{ steps.container_release.outcome == 'success' }}
+      run: |
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@noreply.github.com"
+          git tag -a ${{ steps.addon.outputs.tag }} -m ${{ steps.addon.outputs.tag }}
+          git push origin ${{ steps.addon.outputs.tag }}
+    
+    - name: Create Release
+      if: ${{ steps.container_release.outcome == 'success' }}
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.addon.outputs.tag }}
+        prerelease: false
+        make_latest: false
