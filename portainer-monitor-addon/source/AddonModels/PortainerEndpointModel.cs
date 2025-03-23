@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
 using HomeAssistant.Addon.PortainerMonitor.Portainer.ApiModels;
 using Serilog;
 
@@ -20,7 +21,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     #region Private Fields
 
     private readonly ConcurrentDictionary<string, DockerContainerModel> _containers = new();
-    private readonly PortainerEndpoint _portainerEndpoint;
+    private readonly HaSensor<string> _sensorDockerVersion;
 
     #endregion
 
@@ -32,7 +33,12 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     internal PortainerEndpointModel(PortainerHostModel host, PortainerEndpoint endpoint)
         : base(host, endpoint.Name)
     {
-        _portainerEndpoint = endpoint;
+        ID = endpoint.Id!.Value;
+        Name = endpoint.Name;
+        LatestInfo = endpoint;
+        _sensorDockerVersion = CreateSensorEntity<string>("dockerversion_sensor", "Docker Version");
+        _sensorDockerVersion.Icon = "mdi:docker";
+        _sensorDockerVersion.StateClass = null;
     }
 
     #endregion
@@ -51,17 +57,22 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     /// <summary>
     /// Gets the endpoint name.
     /// </summary>
-    internal string Name => _portainerEndpoint.Name;
-
+    internal string Name { get; }
+    
     /// <summary>
     /// Gets the endpoint ID.
     /// </summary>
-    internal int ID => _portainerEndpoint.Id!.Value;
+    internal int ID { get; }
 
     /// <summary>
     /// Gets the containers.
     /// </summary>
     internal IEnumerable<DockerContainerModel> Containers => _containers.Values;
+
+    /// <summary>
+    /// Gets or sets the latest known endpoint information received from the <see cref="Host"/>.
+    /// </summary>
+    internal PortainerEndpoint LatestInfo { get; set; }
 
     #endregion
 
@@ -70,6 +81,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     /// <inheritdoc />
     internal override Task OnUpdateStatesAsync(bool force, Version apiVersion)
     {
+        _sensorDockerVersion.Value = LatestInfo.Snapshots.LastOrDefault()?.DockerVersion ?? string.Empty;
         return UpdateContainersAsync(force, apiVersion);
     }
 

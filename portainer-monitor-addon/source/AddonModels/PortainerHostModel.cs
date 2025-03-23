@@ -24,7 +24,7 @@ internal class PortainerHostModel : ModelBase
 
     private readonly ConcurrentDictionary<string, PortainerEndpointModel> _endpoints = new();
     private readonly HaSensor<string> _sensorVersion;
-    private readonly HaSensor<int> _sensorAmntContainers;
+    private readonly HaSensor<int> _sensorAmountContainers;
     private readonly HaSensor<int> _sensorRunningCnt;
     private readonly HaSensor<int> _sensorPausedCnt;
     private readonly HaSensor<int> _sensorStoppedCnt;
@@ -44,15 +44,15 @@ internal class PortainerHostModel : ModelBase
     internal PortainerHostModel(IPortainerApi portainerApi, IMqttClient mqttClient, HaDevice device)
         : base(portainerApi, mqttClient, device, device.Identifier, null)
     {
-        _updateItem = CreateUpdateEntity("update", "Update Available");
+        _updateItem = CreateUpdateEntity("update", "Update");
         _updateItem.PictureUrl = "https://portainer-io-assets.sfo2.cdn.digitaloceanspaces.com/logos/portainer.png";
 
         _sensorVersion = CreateSensorEntity<string>("version_sensor", "Version");
         _sensorVersion.PictureUrl = "https://portainer-io-assets.sfo2.cdn.digitaloceanspaces.com/logos/portainer.png";
         _sensorVersion.StateClass = null;
 
-        _sensorAmntContainers = CreateSensorEntity<int>("amntcontainers_sensor", "Total");
-        _sensorAmntContainers.Icon = "mdi:docker";
+        _sensorAmountContainers = CreateSensorEntity<int>("amntcontainers_sensor", "Total");
+        _sensorAmountContainers.Icon = "mdi:docker";
 
         _sensorRunningCnt = CreateSensorEntity<int>("runningcnt_sensor", "Running");
         _sensorRunningCnt.Icon = "mdi:docker";
@@ -83,7 +83,7 @@ internal class PortainerHostModel : ModelBase
         {
             if (Device.Version.Equals(value)) return;
             Device.Version = value;
-            _sensorVersion.Value = value.ToString(3); 
+            _sensorVersion.Value = value.ToString(3);
             _deviceOutdated = true;
         }
     }
@@ -117,7 +117,7 @@ internal class PortainerHostModel : ModelBase
         await UpdateEndpoints(force, Version).ConfigureAwait(false);
         _deviceOutdated = false;
 
-        _sensorAmntContainers.Value = _endpoints.Values.Sum(ep => ep.Containers.Count());
+        _sensorAmountContainers.Value = _endpoints.Values.Sum(ep => ep.Containers.Count());
         _sensorRunningCnt.Value = _endpoints.Values.Sum(ep => ep.Containers.Count(c => c.ContainerState is ContainerState.Running));
         _sensorPausedCnt.Value = _endpoints.Values.Sum(ep => ep.Containers.Count(c => c.ContainerState is ContainerState.Paused));
         _sensorStoppedCnt.Value = _endpoints.Values.Sum(ep => ep.Containers.Count(c => c.ContainerState is ContainerState.Exited));
@@ -156,11 +156,12 @@ internal class PortainerHostModel : ModelBase
         var endpoints = await PortainerApi.GetEndpointsAsync().ConfigureAwait(false) ?? Array.Empty<PortainerEndpoint>();
         foreach (var ep in endpoints)
         {
-            if(ep.Id == null) continue;
-            
+            if (ep.Id == null) continue;
+
             var key = $"{ep.Name} ({ep.Id})";
             if (_endpoints.TryGetValue(key, out var epModel))
             {
+                epModel.LatestInfo = ep;
                 await epModel.UpdateAsync(force, apiVersion).ConfigureAwait(false);
                 continue;
             }

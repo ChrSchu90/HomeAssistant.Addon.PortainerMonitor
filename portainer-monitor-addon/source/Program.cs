@@ -31,7 +31,7 @@ public class Program
     /// <summary>
     /// The addon manufacturer
     /// </summary>
-    private const string AddonManufacturer = "Portainer Monitor by ChrSchu";
+    private const string AddonManufacturer = "Portainer Monitor";
 
     /// <summary>
     /// The default full file name for the config inside a Home Assistant addon container
@@ -175,11 +175,14 @@ public class Program
                 }
             }
 
-            // Close and dispose all connections
+            // Dispose all models to delete their MQTT entities
             await mqttClient.PublishAsync(AvailabilityTopic, null, 0, true).ConfigureAwait(false);
             Log.Information("Shutting down...");
             rootModels.ForEach(m => m.Dispose());
             portainerConnections.ForEach(c => c.Dispose());
+
+            // Wait for MQTT entity delete publishes send during disposal  
+            await Task.Delay(1000, CancellationToken.None).ConfigureAwait(false);
             mqttClient.Dispose();
             Log.Information("Shutdown completed!");
         });

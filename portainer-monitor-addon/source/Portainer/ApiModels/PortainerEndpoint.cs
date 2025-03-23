@@ -144,7 +144,7 @@ public class PortainerEndpoint {
     /// </summary>
     /// <value>List of snapshots</value>
     [JsonPropertyName("Snapshots")]
-    public List<PortainerDockerSnapshot> Snapshots { get; set; }
+    public List<PortainerDockerSnapshot> Snapshots { get; set; } = new();
 
     /// <summary>
     /// The status of the environment(endpoint) (1 - up, 2 - down)
