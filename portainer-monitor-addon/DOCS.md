@@ -46,14 +46,14 @@ When using Home Assistant as self managed docker container you can use the conta
 
 docker compose example (make sure you use the correct architecture like `amd64`, `armv7` or `aarch64`):
 ``` yaml
-version: "3.9"                                                                                                                                   
+version: "3.3"                                                                                                                                   
 services:
   ha-portainer-monitor-addon:
     image: ghcr.io/chrschu90/homeassistant-portainer-monitor-amd64:latest
     environment:
       PORTAINER_MONITOR_CONFIG: >
         {
-          "log_level": "Info",
+          "log_level": "Information",
           "update_interval": 5,
           "mqtt_host": "192.168.10.123",
           "mqtt_port": 1883,
