@@ -140,6 +140,12 @@ internal abstract class HaEntityBase : IDisposable
     public Availability[]? Availability { get; set; }
 
     /// <summary>
+    /// Gets or sets the value template.
+    /// </summary>
+    [JsonPropertyName("value_template"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ValueTemplate { get; set; }
+
+    /// <summary>
     /// If the published message should have the retain flag on or not.
     /// </summary>
     [JsonPropertyName("retain"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
