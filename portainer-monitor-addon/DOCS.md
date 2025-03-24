@@ -8,9 +8,10 @@
 - Sensors with state of each container (`Created`, `Restarting` ,`Running` ,`Removing` ,`Paused` ,`Exited` ,`Dead`)
 - Toggle switch to `start` or `stop` each container
 - Buttons to `pause` or `restart` each container
-![](../documentation/screenshots/controls.png)
-![](../documentation/screenshots/sensors.png)
-![](../documentation/screenshots/update.png)
+
+<img src="https://github.com/user-attachments/assets/71f62f6e-211d-49c4-a990-738a668d59e1" width="750" />
+<img src="https://github.com/user-attachments/assets/444e8113-b977-493f-9725-a211bb95fbd5" width="279" />
+<img src="https://github.com/user-attachments/assets/ae1788ad-aff4-4933-be19-ec79e88c0007" width="500" />
 
 ## Installation 🛠️
 
@@ -36,10 +37,10 @@
    >  tls_enabled: true
    >  tls_validate: false
    >```
-   >![](../documentation/screenshots/config.png)
+   ><img src="https://github.com/user-attachments/assets/86bfb9f0-a938-4d11-852a-117b00a5e0e3" width="900" />
 
 8. Start the addon and check for errors: 
-   >![](../documentation/screenshots/logs.png)
+   ><img src="https://github.com/user-attachments/assets/5a893b90-f5a7-4e0f-a5ed-a26740ddd15d" width="900" />
 
 ### Standalone (not recommended⚠️)
 When using Home Assistant as self managed docker container you can use the container separately. __This is for advanced users only.__
