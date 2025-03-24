@@ -101,5 +101,5 @@ services:
 | host              | &#10003;   |               | Hostname or IP of the Portainer API endpoint                                            |                                                           |
 | port              | &#10007;   | `9443`        | Port of the Portainer API endpoint                                                      | `1` - `65535`                                             |
 | token             | &#10003;   |               | [Portainer Access Token](https://docs.portainer.io/api/access#creating-an-access-token) |                                                           |
-| tls_enabled       | &#10007;   | `true`        | Use TLS for Portainer API connection                                                    | `true` / `false`                                          |
+| tls_enabled       | &#10007;   | `true`        | Use TLS (`https`) for Portainer API connection                                          | `true` / `false`                                          |
 | tls_validate      | &#10007;   | `false`       | Validate Portainer API connection TLS certificate                                       | `true` / `false`                                          |
