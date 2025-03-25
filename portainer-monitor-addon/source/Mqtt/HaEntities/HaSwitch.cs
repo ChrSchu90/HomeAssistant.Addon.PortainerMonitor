@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using MQTTnet.Internal;
+using YamlDotNet.Core.Tokens;
 
 /// <summary>
 /// Home Assistant toggle switch entity
@@ -22,7 +23,7 @@ internal class HaSwitch : HaEntityBase
     #region Private Fields
 
     private readonly AsyncEvent<SwitchCommandReceivedEventArgs> _switchCommandReceived = new();
-    private bool _isChecked;
+    private bool? _isChecked;
 
     #endregion
 
@@ -100,7 +101,7 @@ internal class HaSwitch : HaEntityBase
     [JsonIgnore]
     internal bool IsChecked
     {
-        get => _isChecked;
+        get => _isChecked.GetValueOrDefault(false);
         set
         {
             if (_isChecked == value || IsCommandProcessingActive) return;
@@ -134,6 +135,12 @@ internal class HaSwitch : HaEntityBase
     {
         try
         {
+            if (IsCommandProcessingActive)
+            {
+                await SendStateAsync(true).ConfigureAwait(false);
+                return;
+            }
+
             IsCommandProcessingActive = true;
             await base.OnCommandMessageReceivedAsync(e).ConfigureAwait(false);
             var isChecked = string.Equals(e.MessageContent, PayloadOn, StringComparison.OrdinalIgnoreCase);
@@ -158,6 +165,26 @@ internal class HaSwitch : HaEntityBase
         return _switchCommandReceived.HasHandlers ?
                    _switchCommandReceived.InvokeAsync(new SwitchCommandReceivedEventArgs(sender, commandValue)) :
                    Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    protected override void OnMqttConnectionStateChanged(object? sender, bool e)
+    {
+        base.OnMqttConnectionStateChanged(sender, e);
+        if (!IsDisposed & e)
+        {
+            _isChecked = null;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
+    {
+        base.OnHomeAssistantAvailabilityChanged(sender, e);
+        if (!IsDisposed && e)
+        {
+            _isChecked = null;
+        }
     }
 
     #endregion

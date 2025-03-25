@@ -104,6 +104,26 @@ internal class HaSensor<T> : HaEntityBase where T : IConvertible
         return _value == null ? null : ValueConverter.ValueToData(Value);
     }
 
+    /// <inheritdoc />
+    protected override void OnMqttConnectionStateChanged(object? sender, bool e)
+    {
+        base.OnMqttConnectionStateChanged(sender, e);
+        if (!IsDisposed & e)
+        {
+            _value = default;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
+    {
+        base.OnHomeAssistantAvailabilityChanged(sender, e);
+        if (!IsDisposed && e)
+        {
+            _value = default;
+        }
+    }
+
     #endregion
 
     #region Private Methods

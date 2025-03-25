@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
@@ -29,7 +30,7 @@ internal class PortainerHostModel : ModelBase
     private readonly HaSensor<int> _sensorPausedCnt;
     private readonly HaSensor<int> _sensorStoppedCnt;
     private readonly HaUpdate _updateItem;
-    private bool _deviceOutdated;
+    private bool _deviceOutdated = true;
 
     #endregion
 
@@ -107,20 +108,34 @@ internal class PortainerHostModel : ModelBase
     #region Public Methods
 
     /// <inheritdoc />
-    internal override async Task OnUpdateStatesAsync(bool force, Version apiVersion)
+    internal override async Task<bool> OnUpdateStatesAsync(bool force, Version apiVersion)
     {
         // Do not use the apiVersion! We get this info inside the UpdateVersionInfo
         force = force || _deviceOutdated;
-        await UpdateVersionInfo(force).ConfigureAwait(false);
-        if (Version <= HaDevice.DefaultDeviceVersion) return;
 
-        await UpdateEndpoints(force, Version).ConfigureAwait(false);
-        _deviceOutdated = false;
+        var versionInfo = await PortainerApi.GetVersionAsync().ConfigureAwait(false);
+        if (versionInfo == null)
+            return false;
+
+        var successful = await UpdateVersionInfo(versionInfo).ConfigureAwait(false);
+        if (!successful) 
+            return false;
+
+        var endpoints = await PortainerApi.GetEndpointsAsync().ConfigureAwait(false);
+        if (endpoints == null)
+            return false;
+
+        successful = await UpdateEndpoints(endpoints, force, Version).ConfigureAwait(false);
+        if (!successful)
+            return false;
 
         _sensorAmountContainers.Value = _endpoints.Values.Sum(ep => ep.Containers.Count());
         _sensorRunningCnt.Value = _endpoints.Values.Sum(ep => ep.Containers.Count(c => c.ContainerState is ContainerState.Running));
         _sensorPausedCnt.Value = _endpoints.Values.Sum(ep => ep.Containers.Count(c => c.ContainerState is ContainerState.Paused));
         _sensorStoppedCnt.Value = _endpoints.Values.Sum(ep => ep.Containers.Count(c => c.ContainerState is ContainerState.Exited));
+
+        _deviceOutdated = false;
+        return true;
     }
 
     /// <inheritdoc />
@@ -136,10 +151,8 @@ internal class PortainerHostModel : ModelBase
 
     #region Private Methods
 
-    private async Task UpdateVersionInfo(bool force)
+    private Task<bool> UpdateVersionInfo(SystemVersionResponse versionInfo)
     {
-        var versionInfo = await PortainerApi.GetVersionAsync().ConfigureAwait(false);
-        if (versionInfo == null) return;
         Version = versionInfo.ServerVersion;
         Edition = $"Portainer {versionInfo.ServerEdition}";
 
@@ -149,11 +162,13 @@ internal class PortainerHostModel : ModelBase
         _updateItem.LatestVersion = Version.TryParse(versionInfo.LatestVersion, out var latestVersion) ? latestVersion : Version;
         _updateItem.ReleaseUrl = $"https://github.com/portainer/portainer/releases/tag/{_updateItem.LatestVersion}";
         _updateItem.IsUpdateAvailable = versionInfo.UpdateAvailable;
+
+        return Task.FromResult(Version > HaDevice.DefaultDeviceVersion);
     }
 
-    private async Task UpdateEndpoints(bool force, Version apiVersion)
+    private async Task<bool> UpdateEndpoints(IReadOnlyCollection<PortainerEndpoint> endpoints, bool force, Version apiVersion)
     {
-        var endpoints = await PortainerApi.GetEndpointsAsync().ConfigureAwait(false) ?? Array.Empty<PortainerEndpoint>();
+        var successful = true;
         foreach (var ep in endpoints)
         {
             if (ep.Id == null) continue;
@@ -162,14 +177,14 @@ internal class PortainerHostModel : ModelBase
             if (_endpoints.TryGetValue(key, out var epModel))
             {
                 epModel.LatestInfo = ep;
-                await epModel.UpdateAsync(force, apiVersion).ConfigureAwait(false);
+                successful &= await epModel.UpdateAsync(force, apiVersion).ConfigureAwait(false);
                 continue;
             }
 
             epModel = new PortainerEndpointModel(this, ep);
             Log.Information($"Host: Endpoint `{epModel.Name}` on Host `{Name}` became available and has been added");
             _endpoints.TryAdd(key, epModel);
-            await epModel.UpdateAsync(true, apiVersion).ConfigureAwait(false);
+            successful &= await epModel.UpdateAsync(true, apiVersion).ConfigureAwait(false);
         }
 
         var removedEndpoints = _endpoints.Where(p => endpoints.All(a => a.Id != p.Value.ID && a.Name != p.Value.Name)).Select(p => p.Key);
@@ -179,6 +194,8 @@ internal class PortainerHostModel : ModelBase
             Log.Information($"Host: Endpoint `{epm.Name}` Host `{Name}` became unavailable and has been removed");
             epm.Dispose();
         }
+
+        return successful;
     }
 
     #endregion

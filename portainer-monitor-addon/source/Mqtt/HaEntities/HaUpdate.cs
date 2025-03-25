@@ -128,6 +128,28 @@ internal class HaUpdate : HaEntityBase
     /// <inheritdoc />
     protected override string GetStateMqttPayload() => JsonSerializer.Serialize(_updateState);
 
+    /// <inheritdoc />
+    protected override void OnMqttConnectionStateChanged(object? sender, bool e)
+    {
+        base.OnMqttConnectionStateChanged(sender, e);
+        if (!IsDisposed & e)
+        {
+            _updateState.CurrentVersion = null;
+            _updateState.LatestVersion = null;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
+    {
+        base.OnHomeAssistantAvailabilityChanged(sender, e);
+        if (!IsDisposed && e)
+        {
+            _updateState.CurrentVersion = null;
+            _updateState.LatestVersion = null;
+        }
+    }
+
     #endregion
 
     #region Private Methods

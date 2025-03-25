@@ -113,19 +113,21 @@ internal abstract class ModelBase : IDisposable
     }
 
     /// <summary>
-    /// Called when model should update the entity values <see cref="OnUpdateStatesAsync"/>.
+    /// Called when model should update the entity values <see cref="OnUpdateStatesAsync" />.
     /// </summary>
     /// <param name="force">if set to <c>true</c> force update.</param>
     /// <param name="apiVersion">The API version for backward compatibility.</param>
-    internal abstract Task OnUpdateStatesAsync(bool force, Version apiVersion);
+    /// <returns>If update was successful</returns>
+    internal abstract Task<bool> OnUpdateStatesAsync(bool force, Version apiVersion);
 
     /// <summary>
-    /// Called when <see cref="OnUpdateStatesAsync"/> has been completed.
+    /// Called when <see cref="OnUpdateStatesAsync" /> has been completed.
     /// </summary>
     /// <param name="force">if set to <c>true</c> force update.</param>
     /// <param name="apiVersion">The API version for backward compatibility.</param>
-    /// <remarks>Automatically calls the <see cref="HaEntityBase.SendStateAsync"/> for all created entities</remarks>
-    internal virtual async Task OnUpdateStatesCompletedAsync(bool force, Version apiVersion)
+    /// <param name="successful">if set to <c>true</c> if update was successful.</param>
+    /// <remarks>Automatically calls the <see cref="HaEntityBase.SendStateAsync" /> for all created entities</remarks>
+    internal virtual async Task OnUpdateStatesCompletedAsync(bool force, Version apiVersion, bool successful)
     {
         foreach (var entity in _haEntities.Values)
         {
@@ -138,11 +140,13 @@ internal abstract class ModelBase : IDisposable
     /// </summary>
     /// <param name="force">if set to <c>true</c> force update.</param>
     /// <param name="apiVersion">The API version for backward compatibility.</param>
-    internal async Task UpdateAsync(bool force, Version apiVersion)
+    /// <returns>If update was successful</returns>
+    internal async Task<bool> UpdateAsync(bool force, Version apiVersion)
     {
         await OnBeforeUpdateStatesAsync(force, apiVersion).ConfigureAwait(false);
-        await OnUpdateStatesAsync(force, apiVersion).ConfigureAwait(false);
-        await OnUpdateStatesCompletedAsync(force, apiVersion).ConfigureAwait(false);
+        var successful = await OnUpdateStatesAsync(force, apiVersion).ConfigureAwait(false);
+        await OnUpdateStatesCompletedAsync(force, apiVersion, successful).ConfigureAwait(false);
+        return successful;
     }
 
     /// <summary>

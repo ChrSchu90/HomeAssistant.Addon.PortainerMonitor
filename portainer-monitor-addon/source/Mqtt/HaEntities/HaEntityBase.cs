@@ -324,6 +324,7 @@ internal abstract class HaEntityBase : IDisposable
         if (!IsDisposed && !e)
         {
             IsPublished = false;
+            IsStateOutdated = true;
         }
     }
 
@@ -338,6 +339,7 @@ internal abstract class HaEntityBase : IDisposable
         {
             // If becomes available again 
             IsPublished = false;
+            IsStateOutdated = true;
         }
     }
 

@@ -63,7 +63,7 @@ public class Program
     /// </summary>
     private static readonly string MqttClientID = $"PortainerMonitor-{Guid.NewGuid().ToString("N")[..5]}";
 
-    private static ulong _updateCnt = 0;
+    private static ulong _updateCnt;
 
     /// <summary>
     /// Defines the entry point of the application.
@@ -115,10 +115,14 @@ public class Program
             }
 
             // Handle argument Overrides
-            if (!string.IsNullOrWhiteSpace(mqttUser)) addonCfg.MqttUser = mqttUser;
-            if (!string.IsNullOrWhiteSpace(mqttPassword)) addonCfg.MqttPassword = mqttPassword;
-            if (!string.IsNullOrWhiteSpace(mqttHost)) addonCfg.MqttHost = mqttHost;
-            if (mqttPort.HasValue) addonCfg.MqttPort = mqttPort.Value;
+            if (!string.IsNullOrWhiteSpace(mqttUser)) 
+                addonCfg.MqttUser = mqttUser;
+            if (!string.IsNullOrWhiteSpace(mqttPassword)) 
+                addonCfg.MqttPassword = mqttPassword;
+            if (!string.IsNullOrWhiteSpace(mqttHost)) 
+                addonCfg.MqttHost = mqttHost;
+            if (mqttPort.HasValue) 
+                addonCfg.MqttPort = mqttPort.Value;
 
             // Update log level by config
             logLevelSwitch.MinimumLevel = addonCfg.LogLevel;
@@ -135,10 +139,14 @@ public class Program
             // Init root addon models that will sync the information to Home Assistant
             var rootModels = portainerConnections.Select(i => new PortainerHostModel(i, mqttClient, new HaDevice(AddonPrefix, i.ID, AvailabilityTopic, i.DisplayName, AddonManufacturer))).ToList();
 
+            // Handlers for MQTT disconnect and Home Assistant unavailability
+            mqttClient.ConnectionStateChanged += (_, e) => 
+                { if (!ct.IsCancellationRequested && !e) Interlocked.Exchange(ref _updateCnt, 0); };
+            mqttClient.HomeAssistantAvailabilityChanged += (_, e) => 
+                { if (!ct.IsCancellationRequested && e) Interlocked.Exchange(ref _updateCnt, 0); };
+            
             // Update loop
             var sw = new Stopwatch();
-            mqttClient.ConnectionStateChanged += (_, e) => { if (!ct.IsCancellationRequested && !e) Interlocked.Exchange(ref _updateCnt, 0); };
-            mqttClient.HomeAssistantAvailabilityChanged += (_, e) => { if (!ct.IsCancellationRequested && e) Interlocked.Exchange(ref _updateCnt, 0); };
             while (!ct.IsCancellationRequested)
             {
                 try
@@ -161,16 +169,23 @@ public class Program
                     var updateCnt = Interlocked.Read(ref _updateCnt);
 
                     // Sent unavailable after reconnect since data might be outdated
-                    if (updateCnt == 0) { await mqttClient.PublishAsync(AvailabilityTopic, OfflineAvailability, 0, true).ConfigureAwait(false); }
+                    if (updateCnt == 0)  
+                        await mqttClient.PublishAsync(AvailabilityTopic, OfflineAvailability, 0, true).ConfigureAwait(false);
 
                     // Update states
-                    foreach (var rootModel in rootModels) { await rootModel.UpdateAsync(updateCnt == 1, rootModel.Version).ConfigureAwait(false); }
+                    var successful = true;
+                    foreach (var rootModel in rootModels) 
+                        successful &= await rootModel.UpdateAsync(updateCnt == 1, rootModel.Version).ConfigureAwait(false);
 
                     // Sent available on second update and cyclically to make sure values have been sent
-                    if (updateCnt == 1 || updateCnt % 6 == 0) { await mqttClient.PublishAsync(AvailabilityTopic, OnlineAvailability, 0, true).ConfigureAwait(false); }
+                    if (updateCnt == 1 || updateCnt % 6 == 0)
+                        await mqttClient.PublishAsync(AvailabilityTopic, OnlineAvailability, 0, true).ConfigureAwait(false);
 
                     // Increment update counter and wait for next update cycle
-                    Interlocked.Increment(ref _updateCnt);
+                    if (!successful) 
+                        Interlocked.Exchange(ref _updateCnt, 0);
+                    else
+                        Interlocked.Increment(ref _updateCnt);
                     sw.Stop();
                     Log.Debug($"Updated in {sw.Elapsed.TotalSeconds:0.000}s");
                     var wait = addonCfg.UpdateInterval * 1000 - (int)sw.Elapsed.TotalMilliseconds;
