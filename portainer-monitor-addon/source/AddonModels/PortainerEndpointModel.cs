@@ -130,14 +130,14 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
             if (_containers.TryGetValue(ct.Id, out var ctModel))
             {
                 ctModel.LatestInfo = ct;
-                await ctModel.UpdateAsync(true, apiVersion).ConfigureAwait(false);
+                await ctModel.UpdateAsync(force, apiVersion).ConfigureAwait(false);
                 continue;
             }
 
             ctModel = new DockerContainerModel(this, ct);
             Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` Endpoint `{Name}` became available and has been added");
             _containers.TryAdd(ctModel.ID, ctModel);
-            await ctModel.UpdateAsync(force, apiVersion).ConfigureAwait(false);
+            await ctModel.UpdateAsync(true, apiVersion).ConfigureAwait(false);
         }
 
         var removeContainers = _containers.Keys.Where(k => containers.All(a => a.Id != k));

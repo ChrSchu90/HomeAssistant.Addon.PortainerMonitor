@@ -169,7 +169,7 @@ internal class PortainerHostModel : ModelBase
             epModel = new PortainerEndpointModel(this, ep);
             Log.Information($"Host: Endpoint `{epModel.Name}` on Host `{Name}` became available and has been added");
             _endpoints.TryAdd(key, epModel);
-            await epModel.UpdateAsync(force, apiVersion).ConfigureAwait(false);
+            await epModel.UpdateAsync(true, apiVersion).ConfigureAwait(false);
         }
 
         var removedEndpoints = _endpoints.Where(p => endpoints.All(a => a.Id != p.Value.ID && a.Name != p.Value.Name)).Select(p => p.Key);
