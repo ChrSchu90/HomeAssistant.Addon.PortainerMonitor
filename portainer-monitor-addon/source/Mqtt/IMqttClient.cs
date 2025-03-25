@@ -12,9 +12,14 @@ internal interface IMqttClient
     #region Events
 
     /// <summary>
-    /// Occurs when MQTT connection state has changed.
+    /// Occurs when MQTT <see cref="IsConnected"/>e has changed.
     /// </summary>
     event EventHandler<bool> ConnectionStateChanged;
+
+    /// <summary>
+    /// Occurs when <seealso cref="IsHomeAssistantAvailable"/>changed.
+    /// </summary>
+    event EventHandler<bool> HomeAssistantAvailabilityChanged;
 
     #endregion
 
@@ -24,6 +29,11 @@ internal interface IMqttClient
     /// Gets a value indicating whether the MQTT client is connected.
     /// </summary>
     bool IsConnected { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether home assistant available by its availability state.
+    /// </summary>
+    bool IsHomeAssistantAvailable { get; }
 
     #endregion
 

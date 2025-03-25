@@ -1,5 +1,8 @@
 # Changelog
-## 1.0.4
+## 1.0.6
+- Fixed unavailable entities after HA soft restart
+
+## 1.0.5
 - Improved entity label naming
 
 ## 1.0.4

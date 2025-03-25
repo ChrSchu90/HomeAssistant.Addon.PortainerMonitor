@@ -38,6 +38,7 @@ internal abstract class HaEntityBase : IDisposable
         ID = id;
 
         MqttClient.ConnectionStateChanged += OnMqttConnectionStateChanged;
+        MqttClient.HomeAssistantAvailabilityChanged += OnHomeAssistantAvailabilityChanged;
         AvailabilityTopic = device.AvailabilityTopic;
     }
 
@@ -132,7 +133,7 @@ internal abstract class HaEntityBase : IDisposable
     /// <remarks>See <see cref="HaDeviceClass"/></remarks>
     [JsonPropertyName("device_class"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? DeviceClass { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the availability topic.
     /// </summary>
@@ -209,11 +210,11 @@ internal abstract class HaEntityBase : IDisposable
     /// Also subscribes to the <see cref="CommandTopic"/> if it is defined.
     /// </summary>
     /// <remarks>Use <see cref="RevokeAsync"/> to let HA know that the entity is not available anymore</remarks>
-    internal async Task PublishAsync()
+    internal async Task PublishAsync(bool force)
     {
         if (IsDisposed || ConfigTopic == null || !MqttClient.IsConnected) return;
 
-        if (!IsPublished)
+        if (!IsPublished || force)
         {
             IsPublished = await MqttClient.PublishAsync(ConfigTopic, GetConfigMqttPayload()).ConfigureAwait(false);
         }
@@ -252,8 +253,8 @@ internal abstract class HaEntityBase : IDisposable
     internal virtual async Task SendStateAsync(bool force = false)
     {
         if (IsDisposed) return;
-        if (!IsPublished || force) await PublishAsync().ConfigureAwait(false);
-        if(StateTopic != null && (IsStateOutdated || force)) IsStateOutdated = !await MqttClient.PublishAsync(StateTopic, GetStateMqttPayload()).ConfigureAwait(false);
+        if (!IsPublished || force) { await PublishAsync(force).ConfigureAwait(false); }
+        if (StateTopic != null && (IsStateOutdated || force)) { IsStateOutdated = !await MqttClient.PublishAsync(StateTopic, GetStateMqttPayload()).ConfigureAwait(false); }
     }
 
     /// <summary>
@@ -264,8 +265,8 @@ internal abstract class HaEntityBase : IDisposable
     internal virtual async Task SendCommandAsync(bool force = false)
     {
         if (IsDisposed) return;
-        if (!IsPublished || force) await PublishAsync().ConfigureAwait(false);
-        if (CommandTopic != null) await MqttClient.PublishAsync(CommandTopic, GetCommandMqttPayload()).ConfigureAwait(false);
+        if (!IsPublished || force) { await PublishAsync(force).ConfigureAwait(false); }
+        if (CommandTopic != null) { await MqttClient.PublishAsync(CommandTopic, GetCommandMqttPayload()).ConfigureAwait(false); }
     }
 
     /// <summary>
@@ -309,6 +310,7 @@ internal abstract class HaEntityBase : IDisposable
     {
         if (!disposing) return;
         MqttClient.ConnectionStateChanged -= OnMqttConnectionStateChanged;
+        MqttClient.HomeAssistantAvailabilityChanged -= OnHomeAssistantAvailabilityChanged;
         RevokeAsync().Wait();
     }
 
@@ -316,13 +318,26 @@ internal abstract class HaEntityBase : IDisposable
     /// Called when MQTT connection state has changed.
     /// </summary>
     /// <param name="sender">The sender.</param>
-    /// <param name="e">if set to <c>true</c> [e].</param>
+    /// <param name="e">if set to <c>true</c> connected, otherwise <c>false</c>.</param>
     protected virtual void OnMqttConnectionStateChanged(object? sender, bool e)
     {
         if (!IsDisposed && !e)
         {
             IsPublished = false;
-            // ToDo check if IsListeningForCommandMessages = false; is required!!!
+        }
+    }
+
+    /// <summary>
+    /// Called when home assistant availability has changed.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">if set to <c>true</c> available, otherwise <c>false</c>.</param>
+    protected virtual void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
+    {
+        if (!IsDisposed && e)
+        {
+            // If becomes available again 
+            IsPublished = false;
         }
     }
 

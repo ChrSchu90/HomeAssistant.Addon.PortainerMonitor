@@ -18,6 +18,17 @@ internal class MqttClient : IMqttClient, IDisposable
 {
     #region Private Static Fields
 
+    /// <summary>
+    /// The online status of the <see cref="HomeAssistantAvailabilityTopic"/>
+    /// </summary>
+    internal const string OnlineAvailability = "online";
+
+    /// <summary>
+    /// The home assistant availability topic
+    /// </summary>
+    /// <remarks>Contains <c>online</c> or <c>offline</c></remarks>
+    internal const string HomeAssistantAvailabilityTopic = "homeassistant/status";
+
     #endregion
 
     #region Private Fields
@@ -29,6 +40,7 @@ internal class MqttClient : IMqttClient, IDisposable
     private readonly IMqttConfig _config;
     private readonly CancellationToken _ct;
     private TaskCompletionSource? _connectCompletionSrc;
+    private bool _homeAssistantAvailable = true; // Status is not retained and unknown after connect
 
     #endregion
 
@@ -72,13 +84,20 @@ internal class MqttClient : IMqttClient, IDisposable
 
     /// <inheritdoc />
     public event EventHandler<bool>? ConnectionStateChanged;
-   
+
+
+    /// <inheritdoc />
+    public event EventHandler<bool>? HomeAssistantAvailabilityChanged;
+
     #endregion
 
     #region Properties
 
     /// <inheritdoc />
     public bool IsConnected => !_ct.IsCancellationRequested && _mqttClient.IsStarted && _mqttClient.IsConnected;
+
+    /// <inheritdoc />
+    public bool IsHomeAssistantAvailable => _homeAssistantAvailable;
 
     #endregion
 
@@ -92,10 +111,11 @@ internal class MqttClient : IMqttClient, IDisposable
         _mqttClient.ConnectingFailedAsync -= MqttClient_ConnectingFailedAsync;
         _mqttClient.ConnectionStateChangedAsync -= MqttClient_ConnectionStateChangedAsync;
         _mqttClient.ApplicationMessageReceivedAsync -= MqttClient_ApplicationMessageReceivedAsync;
+        UnsubscribeAsync(HomeAssistantAvailabilityTopic, HomeAssistantAvailability_Changed).Wait(CancellationToken.None);
         _mqttClient.Dispose();
         _subsSemaphore.Dispose();
     }
-
+    
     /// <summary>
     /// Connects the MQTT client.
     /// </summary>
@@ -110,6 +130,7 @@ internal class MqttClient : IMqttClient, IDisposable
 
         _connectCompletionSrc = new TaskCompletionSource();
         await  _mqttClient.StartAsync(_mqttOptions).ConfigureAwait(false);
+        await SubscribeAsync(HomeAssistantAvailabilityTopic, HomeAssistantAvailability_Changed).ConfigureAwait(false);
         await _connectCompletionSrc.Task.ConfigureAwait(false);
         _connectCompletionSrc = null;
     }
@@ -117,9 +138,10 @@ internal class MqttClient : IMqttClient, IDisposable
     /// <summary>
     /// Disconnects the MQTT client.
     /// </summary>
-    public Task DisconnectAsync()
+    public async Task DisconnectAsync()
     {
-        return _mqttClient.StopAsync();
+        await UnsubscribeAsync(HomeAssistantAvailabilityTopic, HomeAssistantAvailability_Changed).ConfigureAwait(false);
+        await _mqttClient.StopAsync().ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -195,6 +217,11 @@ internal class MqttClient : IMqttClient, IDisposable
         ConnectionStateChanged?.Invoke(sender, isConnected);
     }
 
+    protected virtual void OnHomeAssistantAvailabilityChanged(object sender, bool isAvailable)
+    {
+        HomeAssistantAvailabilityChanged?.Invoke(sender, isAvailable);
+    }
+
     #endregion
 
     #region Private Methods
@@ -255,6 +282,19 @@ internal class MqttClient : IMqttClient, IDisposable
         if (e.Certificate == null || e.Chain == null) return false;
         using var cert = new X509Certificate2(e.Certificate);
         return e.Chain.Build(cert);
+    }
+
+    private Task HomeAssistantAvailability_Changed(MqttMessageEventArgs e)
+    {
+        Log.Information($"MQTT: Home Assistant availability changed to `{e.MessageContent}`");
+        var haAvailable = string.Equals(e.MessageContent, OnlineAvailability, StringComparison.OrdinalIgnoreCase);
+        if (_homeAssistantAvailable != haAvailable)
+        {
+            _homeAssistantAvailable = haAvailable;
+            OnHomeAssistantAvailabilityChanged(this, haAvailable);
+        }
+
+        return Task.CompletedTask;
     }
 
     #endregion

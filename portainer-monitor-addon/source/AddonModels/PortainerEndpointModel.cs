@@ -96,6 +96,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     #region Public Methods
 
     /// <inheritdoc />
+    /// <remarks>Make sure to update <see cref="LatestInfo"/> before update.</remarks>
     internal override async Task OnUpdateStatesAsync(bool force, Version apiVersion)
     {
         _sensorDockerVersion.Value = LatestInfo.Snapshots.LastOrDefault()?.DockerVersion ?? string.Empty;

@@ -43,8 +43,9 @@ internal abstract class ModelBase : IDisposable
                            HaEntityBase.BuildID(parentMqttIdPrefix, nameID) :
                            HaEntityBase.BuildID(nameID);
         MqttClient.ConnectionStateChanged += OnMqttConnectionStateChanged;
+        MqttClient.HomeAssistantAvailabilityChanged += OnHomeAssistantAvailabilityChanged;
     }
-
+    
     #endregion
 
     #region Events
@@ -226,8 +227,17 @@ internal abstract class ModelBase : IDisposable
     /// Called when MQTT connection state has changed.
     /// </summary>
     /// <param name="sender">The sender.</param>
-    /// <param name="e">if set to <c>true</c> [e].</param>
+    /// <param name="e">if set to <c>true</c> connected, otherwise <c>false</c>.</param>
     protected virtual void OnMqttConnectionStateChanged(object? sender, bool e)
+    {
+    }
+
+    /// <summary>
+    /// Called when home assistant availability has changed.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">if set to <c>true</c> available, otherwise <c>false</c>.</param>
+    protected virtual void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
     {
     }
 
@@ -239,6 +249,7 @@ internal abstract class ModelBase : IDisposable
     {
         if (!disposing) return;
         MqttClient.ConnectionStateChanged -= OnMqttConnectionStateChanged;
+        MqttClient.HomeAssistantAvailabilityChanged -= OnHomeAssistantAvailabilityChanged;
         foreach (var entity in _haEntities.Values) { entity.Dispose(); }
         _haEntities.Clear();
     }

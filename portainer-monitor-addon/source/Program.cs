@@ -62,7 +62,9 @@ public class Program
     /// The MQTT client ID
     /// </summary>
     private static readonly string MqttClientID = $"PortainerMonitor-{Guid.NewGuid().ToString("N")[..5]}";
-    
+
+    private static ulong _updateCnt = 0;
+
     /// <summary>
     /// Defines the entry point of the application.
     /// </summary>
@@ -135,36 +137,42 @@ public class Program
 
             // Update loop
             var sw = new Stopwatch();
-            ulong updateCnt = 0;
-            mqttClient.ConnectionStateChanged += (_, e) => { if (!ct.IsCancellationRequested && !e) updateCnt = 0; };
+            mqttClient.ConnectionStateChanged += (_, e) => { if (!ct.IsCancellationRequested && !e) Interlocked.Exchange(ref _updateCnt, 0); };
+            mqttClient.HomeAssistantAvailabilityChanged += (_, e) => { if (!ct.IsCancellationRequested && e) Interlocked.Exchange(ref _updateCnt, 0); };
             while (!ct.IsCancellationRequested)
             {
                 try
                 {
-                    sw.Restart();
-                    if (mqttClient.IsConnected)
-                    {
-                        // Sent unavailable after reconnect since data might be outdated
-                        if (updateCnt == 0) { await mqttClient.PublishAsync(AvailabilityTopic, OfflineAvailability, 0, true).ConfigureAwait(false); }
-
-                        foreach (var rootModel in rootModels)
-                        {
-                            await rootModel.UpdateAsync(updateCnt == 1, rootModel.Version).ConfigureAwait(false);
-                        }
-
-                        // Sent available on second update to make sure values have been sent
-                        if (updateCnt == 1) { await mqttClient.PublishAsync(AvailabilityTopic, OnlineAvailability, 0, true).ConfigureAwait(false); }
-
-                        updateCnt++;
-                        sw.Stop();
-                        Log.Debug($"Updated in {sw.Elapsed.TotalSeconds:0.000}s");
-                    }
-                    else
+                    if (!mqttClient.IsConnected)
                     {
                         Log.Debug("Skipped update since MQTT is disconnected");
-                        sw.Stop();
+                        await Task.Delay(addonCfg.UpdateInterval * 1000, ct).ConfigureAwait(false);
+                        continue;
                     }
 
+                    if (!mqttClient.IsHomeAssistantAvailable)
+                    {
+                        Log.Debug("Skipped update since Home Assistant is not available");
+                        await Task.Delay(addonCfg.UpdateInterval * 1000, ct).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    sw.Restart();
+                    var updateCnt = Interlocked.Read(ref _updateCnt);
+
+                    // Sent unavailable after reconnect since data might be outdated
+                    if (updateCnt == 0) { await mqttClient.PublishAsync(AvailabilityTopic, OfflineAvailability, 0, true).ConfigureAwait(false); }
+
+                    // Update states
+                    foreach (var rootModel in rootModels) { await rootModel.UpdateAsync(updateCnt == 1, rootModel.Version).ConfigureAwait(false); }
+
+                    // Sent available on second update and cyclically to make sure values have been sent
+                    if (updateCnt == 1 || updateCnt % 6 == 0) { await mqttClient.PublishAsync(AvailabilityTopic, OnlineAvailability, 0, true).ConfigureAwait(false); }
+
+                    // Increment update counter and wait for next update cycle
+                    Interlocked.Increment(ref _updateCnt);
+                    sw.Stop();
+                    Log.Debug($"Updated in {sw.Elapsed.TotalSeconds:0.000}s");
                     var wait = addonCfg.UpdateInterval * 1000 - (int)sw.Elapsed.TotalMilliseconds;
                     if (wait > 5) await Task.Delay(wait, ct).ConfigureAwait(false);
                 }
