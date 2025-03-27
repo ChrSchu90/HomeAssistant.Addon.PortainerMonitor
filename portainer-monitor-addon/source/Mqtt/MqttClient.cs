@@ -189,10 +189,7 @@ internal class MqttClient : IMqttClient, IDisposable
     }
 
     /// <inheritdoc />
-    public Task<bool> PublishAsync(string topic, string? payload) => PublishAsync(topic, payload, MqttQualityOfServiceLevel.AtMostOnce, false);
-
-    /// <inheritdoc cref="IMqttClient.PublishAsync" />
-    public async Task<bool> PublishAsync(string topic, string? payload, MqttQualityOfServiceLevel level, bool retain)
+    public async Task<bool> PublishAsync(string topic, string? payload, MqttQualityOfServiceLevel level = MqttQualityOfServiceLevel.AtMostOnce, bool retain = false)
     {
         try
         {

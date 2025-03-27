@@ -26,19 +26,18 @@ internal class HaDevice
     /// </summary>
     /// <param name="addonPrefix">The addon prefix.</param>
     /// <param name="id">The device identifier.</param>
-    /// <param name="availabilityTopic">The availability topic.</param>
     /// <param name="name">The device display name.</param>
     /// <param name="manufacturer">The device manufacturer.</param>
     /// <param name="model">The device model.</param>
     /// <param name="version">The device version.</param>
-    internal HaDevice(string addonPrefix, string id, string? availabilityTopic, string? name, string? manufacturer = null, string? model = null, Version? version = null)
+    internal HaDevice(string addonPrefix, string id, string? name, string? manufacturer = null, string? model = null, Version? version = null)
     {
         Name = name ?? string.Empty;
         Manufacturer = manufacturer ?? string.Empty;
         Model = model ?? string.Empty;
         Version = version ?? DefaultDeviceVersion;
-        Identifiers = [HaEntityBase.BuildID(addonPrefix, id)];
-        AvailabilityTopic = availabilityTopic;
+        AddonPrefix = addonPrefix;
+        Identifiers = [HaEntityBase.BuildID(AddonPrefix, id)];
     }
 
     #endregion
@@ -80,10 +79,10 @@ internal class HaDevice
     public string[] Identifiers { get; set; }
 
     /// <summary>
-    /// Gets the availability topic.
+    /// Gets the addon entity ID prefix.
     /// </summary>
     [JsonIgnore]
-    internal string? AvailabilityTopic { get; }
+    internal string AddonPrefix { get; }
 
     /// <summary>
     /// Gets the identifier.

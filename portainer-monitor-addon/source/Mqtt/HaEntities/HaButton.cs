@@ -37,7 +37,6 @@ internal class HaButton : HaEntityBase
     {
         ConfigTopic = string.Format(ButtonConfigTopic, ID);
         CommandTopic = string.Format(ButtonCommandTopic, ID);
-        IsStateOutdated = true;
     }
 
     #endregion

@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
 using HomeAssistant.Addon.PortainerMonitor.Portainer.ApiModels;
 using Serilog;
@@ -26,6 +27,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     private readonly HaSensor<int> _sensorRunningCnt;
     private readonly HaSensor<int> _sensorPausedCnt;
     private readonly HaSensor<int> _sensorStoppedCnt;
+    private bool? _isAvailable;
 
     #endregion
 
@@ -40,21 +42,33 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
         ID = endpoint.Id!.Value;
         Name = endpoint.Name;
         LatestInfo = endpoint;
+        
+        Availability = new() { Topic = string.Format(AvailabilityTopic, MqttIdPrefix) };
 
         _sensorDockerVersion = CreateSensorEntity<string>("dockerversion_sensor", $"{Name} Docker Version");
+        _sensorDockerVersion.Availabilities = [Host.Availability, Availability];
+        _sensorDockerVersion.AvailabilityMode = HaAvailability.ModeAll;
         _sensorDockerVersion.Icon = "mdi:information-outline";
         _sensorDockerVersion.StateClass = null;
 
         _sensorAmountContainers = CreateSensorEntity<int>("amntcontainers_sensor", $"{Name} Containers");
+        _sensorAmountContainers.Availabilities = [Host.Availability, Availability];
+        _sensorAmountContainers.AvailabilityMode = HaAvailability.ModeAll;
         _sensorAmountContainers.Icon = "mdi:docker";
 
         _sensorRunningCnt = CreateSensorEntity<int>("runningcnt_sensor", $"{Name} Running");
+        _sensorRunningCnt.Availabilities = [Host.Availability, Availability];
+        _sensorRunningCnt.AvailabilityMode = HaAvailability.ModeAll;
         _sensorRunningCnt.Icon = "mdi:play";
 
         _sensorPausedCnt = CreateSensorEntity<int>("pausedcnt_sensor", $"{Name} Paused");
+        _sensorPausedCnt.Availabilities = [Host.Availability, Availability];
+        _sensorPausedCnt.AvailabilityMode = HaAvailability.ModeAll;
         _sensorPausedCnt.Icon = "mdi:pause";
 
         _sensorStoppedCnt = CreateSensorEntity<int>("stoppedcnt_sensor", $"{Name} Stopped");
+        _sensorStoppedCnt.Availabilities = [Host.Availability, Availability];
+        _sensorStoppedCnt.AvailabilityMode = HaAvailability.ModeAll;
         _sensorStoppedCnt.Icon = "mdi:stop";
     }
 
@@ -91,6 +105,11 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     /// </summary>
     internal PortainerEndpoint LatestInfo { get; set; }
 
+    /// <summary>
+    /// Gets the Portainer Endpoint availability.
+    /// </summary>
+    internal Availability Availability { get; }
+
     #endregion
 
     #region Public Methods
@@ -101,19 +120,44 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     {
         var containers = await PortainerApi.GetAllContainersAsync(ID).ConfigureAwait(false);
         if (containers == null)
+        {
+            await SendAvailabilityUpdateAsync(false).ConfigureAwait(false);
             return false;
+        }
 
         _sensorDockerVersion.Value = LatestInfo.Snapshots.LastOrDefault()?.DockerVersion ?? string.Empty;
 
         var successful = await UpdateContainersAsync(containers, force, apiVersion).ConfigureAwait(false);
-        if (!successful)
-            return false;
+        if (successful)
+        {
+            _sensorAmountContainers.Value = _containers.Count;
+            _sensorRunningCnt.Value = _containers.Values.Count(c => c.ContainerState is ContainerState.Running);
+            _sensorPausedCnt.Value = _containers.Values.Count(c => c.ContainerState is ContainerState.Paused);
+            _sensorStoppedCnt.Value = _containers.Values.Count(c => c.ContainerState is ContainerState.Exited);
+        }
 
-        _sensorAmountContainers.Value = _containers.Count;
-        _sensorRunningCnt.Value = _containers.Values.Count(c => c.ContainerState is ContainerState.Running);
-        _sensorPausedCnt.Value = _containers.Values.Count(c => c.ContainerState is ContainerState.Paused);
-        _sensorStoppedCnt.Value = _containers.Values.Count(c => c.ContainerState is ContainerState.Exited);
+        await SendAvailabilityUpdateAsync(true).ConfigureAwait(false);
         return true;
+    }
+
+    /// <inheritdoc />
+    protected override void OnMqttConnectionStateChanged(object? sender, bool e)
+    {
+        base.OnMqttConnectionStateChanged(sender, e);
+        if (!IsDisposed && !e)
+        {
+            _ = SendAvailabilityUpdateAsync(false);
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
+    {
+        base.OnHomeAssistantAvailabilityChanged(sender, e);
+        if (!IsDisposed && !e)
+        {
+            _ = SendAvailabilityUpdateAsync(false);
+        }
     }
 
     /// <inheritdoc />
@@ -121,6 +165,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     {
         base.OnDispose(disposing);
         if (!disposing) return;
+        SendAvailabilityUpdateAsync(false).Wait();
         foreach (var containerModel in _containers.Values) { containerModel.Dispose(); }
         _containers.Clear();
     }
@@ -128,6 +173,13 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     #endregion
 
     #region Private Methods
+
+    private Task SendAvailabilityUpdateAsync(bool isAvailable)
+    {
+        if (isAvailable == _isAvailable) return Task.CompletedTask;
+        _isAvailable = isAvailable;
+        return MqttClient.PublishAsync(Availability.Topic, _isAvailable.Value ? HaAvailability.IsAvailable : HaAvailability.IsUnavailable, retain: true);
+    }
 
     private async Task<bool> UpdateContainersAsync(IReadOnlyCollection<DockerContainer> containers, bool force, Version apiVersion)
     {
@@ -137,14 +189,14 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
             if (_containers.TryGetValue(ct.Id, out var ctModel))
             {
                 ctModel.LatestInfo = ct;
-                successful &= await ctModel.UpdateAsync(force, apiVersion).ConfigureAwait(false);
+                successful |= await ctModel.UpdateAsync(force, apiVersion).ConfigureAwait(false);
                 continue;
             }
 
             ctModel = new DockerContainerModel(this, ct);
             Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` Endpoint `{Name}` became available and has been added");
             _containers.TryAdd(ctModel.ID, ctModel);
-            successful &= await ctModel.UpdateAsync(true, apiVersion).ConfigureAwait(false);
+            successful |= await ctModel.UpdateAsync(true, apiVersion).ConfigureAwait(false);
         }
 
         var removeContainers = _containers.Keys.Where(k => containers.All(a => a.Id != k));

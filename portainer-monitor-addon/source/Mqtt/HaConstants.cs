@@ -155,9 +155,43 @@ public static class HaNativeValue
 /// Home Assistant sensor state classes for <see cref="HaSensor{T}.StateClass"/> see:
 /// <see href="https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes"/>
 /// </summary>
-public static class SensorStateClass
+public static class HaSensorStateClass
 {
     public const string MEASUREMENT = "measurement";
     public const string TOTAL = "total";
     public const string TOTAL_INCREASING = "total_increasing";
+}
+
+/// <summary>
+/// Home Assistant availability states and modes
+/// </summary>
+public static class HaAvailability
+{
+    /// <summary>
+    /// Entity is available
+    /// </summary>
+    public const string IsAvailable = "online";
+
+    /// <summary>
+    /// Entity is not available
+    /// </summary>
+    public const string IsUnavailable = "offline";
+
+    /// <summary>
+    /// The mode all.
+    /// If set to all, payload_available must be received on all configured availability topics before the entity is marked as online.
+    /// </summary>
+    public const string ModeAll = "all";
+
+    /// <summary>
+    /// The availability mode Any.
+    /// If set to any, payload_available must be received on at least one configured availability topic before the entity is marked as online.
+    /// </summary>
+    public const string ModeAny = "any";
+
+    /// <summary>
+    /// The availability mode latest (default).
+    /// If set to latest, the last payload_available or payload_not_available received on any configured availability topic controls the availability.
+    /// </summary>
+    public const string ModeLatest = "latest";
 }

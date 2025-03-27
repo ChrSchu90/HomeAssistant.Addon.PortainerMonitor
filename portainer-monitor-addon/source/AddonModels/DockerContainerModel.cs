@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
 using HomeAssistant.Addon.PortainerMonitor.Portainer.ApiModels;
 using Serilog;
@@ -46,18 +47,26 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
         _disposeToken = _disposeTokenSource.Token;
 
         _switchStartStop = CreateSwitchEntity("startstop_switch", $"{Endpoint.Name} {Name}");
+        _switchStartStop.Availabilities = [Endpoint.Host.Availability, Endpoint.Availability];
+        _switchStartStop.AvailabilityMode = HaAvailability.ModeAll;
         _switchStartStop.SwitchCommandReceived += OnSwitchCommandReceived;
         _switchStartStop.Icon = "mdi:docker";
 
         _buttonPause = CreateButtonEntity("pause_button", $"{Endpoint.Name} {Name}");
+        _buttonPause.Availabilities = [Endpoint.Host.Availability, Endpoint.Availability];
+        _buttonPause.AvailabilityMode = HaAvailability.ModeAll;
         _buttonPause.ButtonCommandReceived += OnPauseCommandReceived;
         _buttonPause.Icon = "mdi:pause";
 
         _buttonRestart = CreateButtonEntity("restart_button", $"{Endpoint.Name} {Name}");
+        _buttonRestart.Availabilities = [Endpoint.Host.Availability, Endpoint.Availability];
+        _buttonRestart.AvailabilityMode = HaAvailability.ModeAll;
         _buttonRestart.ButtonCommandReceived += OnRestartCommandReceived;
         _buttonRestart.Icon = "mdi:restart";
 
         _sensorState = CreateSensorEntity<ContainerState>(HaEntityBase.BuildID("status_sensor"), $"{Endpoint.Name} {Name}");
+        _sensorState.Availabilities = [Endpoint.Host.Availability, Endpoint.Availability];
+        _sensorState.AvailabilityMode = HaAvailability.ModeAll;
         _sensorState.Icon = "mdi:state-machine";
         _sensorState.StateClass = null;
     }

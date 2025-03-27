@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using Cocona;
 using HomeAssistant.Addon.PortainerMonitor.AddonModels;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
-using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
 using HomeAssistant.Addon.PortainerMonitor.Portainer;
 using Serilog;
 using Serilog.Core;
@@ -44,26 +43,9 @@ public class Program
     private const string ConfigEnvVariable = "PORTAINER_MONITOR_CONFIG";
 
     /// <summary>
-    /// The availability topic
-    /// </summary>
-    private const string AvailabilityTopic = "portainermonitor/state";
-
-    /// <summary>
-    /// The online status of the <see cref="AvailabilityTopic"/>
-    /// </summary>
-    private const string OnlineAvailability = "online";
-
-    /// <summary>
-    /// The offline status of the <see cref="AvailabilityTopic"/>
-    /// </summary>
-    private const string OfflineAvailability = "offline";
-
-    /// <summary>
     /// The MQTT client ID
     /// </summary>
     private static readonly string MqttClientID = $"PortainerMonitor-{Guid.NewGuid().ToString("N")[..5]}";
-
-    private static ulong _updateCnt;
 
     /// <summary>
     /// Defines the entry point of the application.
@@ -115,13 +97,13 @@ public class Program
             }
 
             // Handle argument Overrides
-            if (!string.IsNullOrWhiteSpace(mqttUser)) 
+            if (!string.IsNullOrWhiteSpace(mqttUser))
                 addonCfg.MqttUser = mqttUser;
-            if (!string.IsNullOrWhiteSpace(mqttPassword)) 
+            if (!string.IsNullOrWhiteSpace(mqttPassword))
                 addonCfg.MqttPassword = mqttPassword;
-            if (!string.IsNullOrWhiteSpace(mqttHost)) 
+            if (!string.IsNullOrWhiteSpace(mqttHost))
                 addonCfg.MqttHost = mqttHost;
-            if (mqttPort.HasValue) 
+            if (mqttPort.HasValue)
                 addonCfg.MqttPort = mqttPort.Value;
 
             // Update log level by config
@@ -137,14 +119,8 @@ public class Program
             var portainerConnections = addonCfg.PortainerConfigs.Select(c => new PortainerApi(c, ct)).ToList();
 
             // Init root addon models that will sync the information to Home Assistant
-            var rootModels = portainerConnections.Select(i => new PortainerHostModel(i, mqttClient, new HaDevice(AddonPrefix, i.ID, AvailabilityTopic, i.DisplayName, AddonManufacturer))).ToList();
+            var rootModels = portainerConnections.Select(i => new PortainerHostModel(i, mqttClient, AddonPrefix, AddonManufacturer)).ToList();
 
-            // Handlers for MQTT disconnect and Home Assistant unavailability
-            mqttClient.ConnectionStateChanged += (_, e) => 
-                { if (!ct.IsCancellationRequested && !e) Interlocked.Exchange(ref _updateCnt, 0); };
-            mqttClient.HomeAssistantAvailabilityChanged += (_, e) => 
-                { if (!ct.IsCancellationRequested && e) Interlocked.Exchange(ref _updateCnt, 0); };
-            
             // Update loop
             var sw = new Stopwatch();
             while (!ct.IsCancellationRequested)
@@ -166,26 +142,11 @@ public class Program
                     }
 
                     sw.Restart();
-                    var updateCnt = Interlocked.Read(ref _updateCnt);
 
-                    // Sent unavailable after reconnect since data might be outdated
-                    if (updateCnt == 0)  
-                        await mqttClient.PublishAsync(AvailabilityTopic, OfflineAvailability, 0, true).ConfigureAwait(false);
+                    // Update models
+                    foreach (var rootModel in rootModels)
+                        _ = await rootModel.UpdateAsync(false, rootModel.Version).ConfigureAwait(false);
 
-                    // Update states
-                    var successful = true;
-                    foreach (var rootModel in rootModels) 
-                        successful &= await rootModel.UpdateAsync(updateCnt == 1, rootModel.Version).ConfigureAwait(false);
-
-                    // Sent available on second update and cyclically to make sure values have been sent
-                    if (updateCnt == 1 || updateCnt % 6 == 0)
-                        await mqttClient.PublishAsync(AvailabilityTopic, OnlineAvailability, 0, true).ConfigureAwait(false);
-
-                    // Increment update counter and wait for next update cycle
-                    if (!successful) 
-                        Interlocked.Exchange(ref _updateCnt, 0);
-                    else
-                        Interlocked.Increment(ref _updateCnt);
                     sw.Stop();
                     Log.Debug($"Updated in {sw.Elapsed.TotalSeconds:0.000}s");
                     var wait = addonCfg.UpdateInterval * 1000 - (int)sw.Elapsed.TotalMilliseconds;
@@ -198,8 +159,6 @@ public class Program
                 }
             }
 
-            // Dispose all models to delete their MQTT entities
-            await mqttClient.PublishAsync(AvailabilityTopic, null, 0, true).ConfigureAwait(false);
             Log.Information("Shutting down...");
             rootModels.ForEach(m => m.Dispose());
             portainerConnections.ForEach(c => c.Dispose());

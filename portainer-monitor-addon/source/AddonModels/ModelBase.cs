@@ -13,7 +13,12 @@ using HomeAssistant.Addon.PortainerMonitor.Portainer;
 /// </summary>
 internal abstract class ModelBase : IDisposable
 {
-    #region Private Static Fields
+    #region Static Fields
+
+    /// <summary>
+    /// Availability topic as string format to inject the topic name
+    /// </summary>
+    protected const string AvailabilityTopic = "portainermonitor/{0}_status";
 
     #endregion
 

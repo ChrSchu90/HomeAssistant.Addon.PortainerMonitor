@@ -2,6 +2,7 @@
 
 using System.Threading.Tasks;
 using System;
+using MQTTnet.Protocol;
 
 /// <summary>
 /// MQTT client access for Home Assistant communication see:
@@ -58,7 +59,10 @@ internal interface IMqttClient
     /// </summary>
     /// <param name="topic">The topic.</param>
     /// <param name="payload">The payload, if <c>null</c> topic gets deleted.</param>
-    public Task<bool> PublishAsync(string topic, string? payload);
+    /// <param name="level">The MQTT quality of service level.</param>
+    /// <param name="retain">if set to <c>true</c> MQTT Broker retains the value.</param>
+    /// <returns><c>true</c> if send successfully</returns>
+    public Task<bool> PublishAsync(string topic, string? payload, MqttQualityOfServiceLevel level = MqttQualityOfServiceLevel.AtMostOnce, bool retain = false);
 
     #endregion
 }

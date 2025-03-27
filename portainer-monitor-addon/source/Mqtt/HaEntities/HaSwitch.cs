@@ -135,12 +135,6 @@ internal class HaSwitch : HaEntityBase
     {
         try
         {
-            if (IsCommandProcessingActive)
-            {
-                await SendStateAsync(true).ConfigureAwait(false);
-                return;
-            }
-
             IsCommandProcessingActive = true;
             await base.OnCommandMessageReceivedAsync(e).ConfigureAwait(false);
             var isChecked = string.Equals(e.MessageContent, PayloadOn, StringComparison.OrdinalIgnoreCase);

@@ -39,7 +39,7 @@ internal class HaSensor<T> : HaEntityBase where T : IConvertible
         ConfigTopic = string.Format(SensorConfigTopic, ID);
         StateTopic = string.Format(SensorStateTopic, ID);
         ValueConverter = valueConverter ?? new ValueConverter<T>();
-        StateClass = SensorStateClass.MEASUREMENT;
+        StateClass = HaSensorStateClass.MEASUREMENT;
     }
 
     #endregion
@@ -51,7 +51,7 @@ internal class HaSensor<T> : HaEntityBase where T : IConvertible
     #region Properties
 
     /// <summary>
-    /// Gets or sets the <see cref="SensorStateClass"/>.
+    /// Gets or sets the <see cref="HaSensorStateClass"/>.
     /// </summary>
     [JsonPropertyName("state_class"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? StateClass { get; set; }

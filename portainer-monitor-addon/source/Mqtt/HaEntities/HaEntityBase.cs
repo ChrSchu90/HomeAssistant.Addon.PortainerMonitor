@@ -4,6 +4,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -13,11 +14,23 @@ internal abstract class HaEntityBase : IDisposable
 {
     #region Private Static Fields
 
+    /// <summary>
+    /// Force publish amount of times after successful connect/re-connect
+    /// </summary>
+    private const ushort ForcePublishCnt = 1;
+
+    /// <summary>
+    /// Force State Update amount of times after successful connect/re-connect
+    /// </summary>
+    private const ushort ForceStateUpdateCnt = 2;
+
     private static readonly Regex _allowedEntityIdRegex = new("[^A-Za-z0-9_]");
 
     #endregion
 
     #region Private Fields
+
+    private ulong _updateCnt;
 
     #endregion
 
@@ -39,7 +52,6 @@ internal abstract class HaEntityBase : IDisposable
 
         MqttClient.ConnectionStateChanged += OnMqttConnectionStateChanged;
         MqttClient.HomeAssistantAvailabilityChanged += OnHomeAssistantAvailabilityChanged;
-        AvailabilityTopic = device.AvailabilityTopic;
     }
 
     #endregion
@@ -75,7 +87,7 @@ internal abstract class HaEntityBase : IDisposable
     public string Platform { get; set; } = "mqtt";
 
     /// <summary>
-    /// Gets or sets the MQTT topic subscribed to receive availability (online/offline) updates. Must not be used together with <see cref="Availability"/>.
+    /// Gets or sets the MQTT topic subscribed to receive availability (online/offline) updates. Must not be used together with <see cref="Availabilities"/>.
     /// </summary>
     [JsonPropertyName("availability_topic"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? AvailabilityTopic { get; set; }
@@ -86,16 +98,7 @@ internal abstract class HaEntityBase : IDisposable
     /// </summary>
     [JsonPropertyName("availability_template "), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? AvailabilityTemplate { get; set; }
-
-    /// <summary>
-    /// When availability is configured, this controls the conditions needed to set the entity to available.
-    /// Valid entries are all, any, and latest. If set to all, payload_available must be received on all configured availability topics before the entity is marked as online.
-    /// If set to any, payload_available must be received on at least one configured availability topic before the entity is marked as online. If set to latest,
-    /// the last payload_available or payload_not_available received on any configured availability topic controls the availability.
-    /// </summary>
-    [JsonPropertyName("availability_mode "), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? AvailabilityMode { get; set; }
-
+    
     /// <summary>
     /// Gets or sets the entity configuration topic to notify HA about the existence.
     /// </summary>
@@ -135,11 +138,20 @@ internal abstract class HaEntityBase : IDisposable
     public string? DeviceClass { get; set; }
 
     /// <summary>
+    /// When availability is configured, this controls the conditions needed to set the entity to available.
+    /// Valid entries are all, any, and latest. If set to all, payload_available must be received on all configured availability topics before the entity is marked as online.
+    /// If set to any, payload_available must be received on at least one configured availability topic before the entity is marked as online. If set to latest,
+    /// the last payload_available or payload_not_available received on any configured availability topic controls the availability.
+    /// </summary>
+    [JsonPropertyName("availability_mode "), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AvailabilityMode { get; set; }
+
+    /// <summary>
     /// Gets or sets the availability topic.
     /// </summary>
     [JsonPropertyName("availability"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Availability[]? Availability { get; set; }
-
+    public Availability[]? Availabilities { get; set; }
+    
     /// <summary>
     /// Gets or sets the value template.
     /// </summary>
@@ -158,12 +170,6 @@ internal abstract class HaEntityBase : IDisposable
     /// <remarks>Automatically resets on <see cref="SendStateAsync"/></remarks>
     [JsonIgnore]
     public bool IsStateOutdated { get; protected set; } = true;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the entities <see cref="ConfigTopic"/> is published and known by HA.
-    /// </summary>
-    [JsonIgnore]
-    public bool IsPublished { get; protected set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the entities <see cref="CommandTopic"/> is listening for command messages.
@@ -212,12 +218,11 @@ internal abstract class HaEntityBase : IDisposable
     /// <remarks>Use <see cref="RevokeAsync"/> to let HA know that the entity is not available anymore</remarks>
     internal async Task PublishAsync(bool force)
     {
-        if (IsDisposed || ConfigTopic == null || !MqttClient.IsConnected) return;
+        if (IsDisposed || ConfigTopic == null || !MqttClient.IsConnected) 
+            return;
 
-        if (!IsPublished || force)
-        {
-            IsPublished = await MqttClient.PublishAsync(ConfigTopic, GetConfigMqttPayload()).ConfigureAwait(false);
-        }
+        if (force || Interlocked.Read(ref _updateCnt) <= ForcePublishCnt)
+            await MqttClient.PublishAsync(ConfigTopic, GetConfigMqttPayload()).ConfigureAwait(false);
 
         if (CommandTopic != null && !IsListeningForCommandMessages)
         {
@@ -233,15 +238,19 @@ internal abstract class HaEntityBase : IDisposable
     /// <remarks>This includes <see cref="ConfigTopic"/>, <see cref="StateTopic"/> and <see cref="CommandTopic"/></remarks>
     internal async Task RevokeAsync()
     {
-        if (ConfigTopic != null) await MqttClient.PublishAsync(ConfigTopic, null).ConfigureAwait(false);
-        if (StateTopic != null) await MqttClient.PublishAsync(StateTopic, null).ConfigureAwait(false);
+        if (ConfigTopic != null)
+            await MqttClient.PublishAsync(ConfigTopic, null).ConfigureAwait(false);
+
+        if (StateTopic != null) 
+            await MqttClient.PublishAsync(StateTopic, null).ConfigureAwait(false);
+
         if (CommandTopic != null)
         {
             await MqttClient.UnsubscribeAsync(CommandTopic, OnCommandMessageReceivedAsync).ConfigureAwait(false);
             await MqttClient.PublishAsync(CommandTopic, null).ConfigureAwait(false);
         }
 
-        IsPublished = false;
+        Interlocked.Exchange(ref _updateCnt, 0);
         IsListeningForCommandMessages = false;
     }
 
@@ -253,8 +262,24 @@ internal abstract class HaEntityBase : IDisposable
     internal virtual async Task SendStateAsync(bool force = false)
     {
         if (IsDisposed) return;
-        if (!IsPublished || force) { await PublishAsync(force).ConfigureAwait(false); }
-        if (StateTopic != null && (IsStateOutdated || force)) { IsStateOutdated = !await MqttClient.PublishAsync(StateTopic, GetStateMqttPayload()).ConfigureAwait(false); }
+        await PublishAsync(force).ConfigureAwait(false);
+        if (StateTopic == null)
+        {
+            // Some entities like button do not have a state topic
+            IsStateOutdated = false;
+            Interlocked.Increment(ref _updateCnt);
+            return;
+        }
+
+        if (!IsStateOutdated && !force && Interlocked.Read(ref _updateCnt) > ForceStateUpdateCnt)
+            return;
+        
+        var successful = await MqttClient.PublishAsync(StateTopic, GetStateMqttPayload()).ConfigureAwait(false);
+        if (!successful) 
+            return;
+        
+        IsStateOutdated = false;
+        Interlocked.Increment(ref _updateCnt);
     }
 
     /// <summary>
@@ -265,8 +290,9 @@ internal abstract class HaEntityBase : IDisposable
     internal virtual async Task SendCommandAsync(bool force = false)
     {
         if (IsDisposed) return;
-        if (!IsPublished || force) { await PublishAsync(force).ConfigureAwait(false); }
-        if (CommandTopic != null) { await MqttClient.PublishAsync(CommandTopic, GetCommandMqttPayload()).ConfigureAwait(false); }
+        await PublishAsync(force).ConfigureAwait(false);
+        if (CommandTopic != null)
+            await MqttClient.PublishAsync(CommandTopic, GetCommandMqttPayload()).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -323,7 +349,7 @@ internal abstract class HaEntityBase : IDisposable
     {
         if (!IsDisposed && !e)
         {
-            IsPublished = false;
+            Interlocked.Exchange(ref _updateCnt, 0);
             IsStateOutdated = true;
         }
     }
@@ -338,7 +364,7 @@ internal abstract class HaEntityBase : IDisposable
         if (!IsDisposed && e)
         {
             // If becomes available again 
-            IsPublished = false;
+            Interlocked.Exchange(ref _updateCnt, 0);
             IsStateOutdated = true;
         }
     }
