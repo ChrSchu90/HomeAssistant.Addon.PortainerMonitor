@@ -110,12 +110,12 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
 
     /// <inheritdoc />
     /// <remarks>Make sure to update <see cref="LatestInfo"/> before update.</remarks>
-    internal override Task<bool> OnUpdateStatesAsync(bool force, Version apiVersion)
+    internal override Task<bool> OnUpdateStatesAsync(bool force)
     {
         // Update Status Sensor
         if (LatestInfo.State != _sensorState.Value)
             Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` changed state to `{LatestInfo.State}`");
-        
+
         _sensorState.Value = LatestInfo.State;
 
         // Update On/Off Switch

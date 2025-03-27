@@ -145,7 +145,7 @@ public class Program
 
                     // Update models
                     foreach (var rootModel in rootModels)
-                        _ = await rootModel.UpdateAsync(false, rootModel.Version).ConfigureAwait(false);
+                        _ = await rootModel.UpdateAsync().ConfigureAwait(false);
 
                     sw.Stop();
                     Log.Debug($"Updated in {sw.Elapsed.TotalSeconds:0.000}s");

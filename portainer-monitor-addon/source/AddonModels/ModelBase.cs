@@ -111,8 +111,7 @@ internal abstract class ModelBase : IDisposable
     /// Called before <see cref="OnUpdateStatesAsync"/> has been called.
     /// </summary>
     /// <param name="force">if set to <c>true</c> force update.</param>
-    /// <param name="apiVersion">The API version for backward compatibility.</param>
-    internal virtual Task OnBeforeUpdateStatesAsync(bool force, Version apiVersion)
+    internal virtual Task OnBeforeUpdateStatesAsync(bool force)
     {
         return Task.CompletedTask;
     }
@@ -121,18 +120,16 @@ internal abstract class ModelBase : IDisposable
     /// Called when model should update the entity values <see cref="OnUpdateStatesAsync" />.
     /// </summary>
     /// <param name="force">if set to <c>true</c> force update.</param>
-    /// <param name="apiVersion">The API version for backward compatibility.</param>
     /// <returns>If update was successful</returns>
-    internal abstract Task<bool> OnUpdateStatesAsync(bool force, Version apiVersion);
+    internal abstract Task<bool> OnUpdateStatesAsync(bool force);
 
     /// <summary>
     /// Called when <see cref="OnUpdateStatesAsync" /> has been completed.
     /// </summary>
     /// <param name="force">if set to <c>true</c> force update.</param>
-    /// <param name="apiVersion">The API version for backward compatibility.</param>
     /// <param name="successful">if set to <c>true</c> if update was successful.</param>
     /// <remarks>Automatically calls the <see cref="HaEntityBase.SendStateAsync" /> for all created entities</remarks>
-    internal virtual async Task OnUpdateStatesCompletedAsync(bool force, Version apiVersion, bool successful)
+    internal virtual async Task OnUpdateStatesCompletedAsync(bool force, bool successful)
     {
         foreach (var entity in _haEntities.Values)
         {
@@ -144,13 +141,12 @@ internal abstract class ModelBase : IDisposable
     /// Updates the model and syncs the model states with the Home Assistant entities.
     /// </summary>
     /// <param name="force">if set to <c>true</c> force update.</param>
-    /// <param name="apiVersion">The API version for backward compatibility.</param>
     /// <returns>If update was successful</returns>
-    internal async Task<bool> UpdateAsync(bool force, Version apiVersion)
+    internal async Task<bool> UpdateAsync(bool force = false)
     {
-        await OnBeforeUpdateStatesAsync(force, apiVersion).ConfigureAwait(false);
-        var successful = await OnUpdateStatesAsync(force, apiVersion).ConfigureAwait(false);
-        await OnUpdateStatesCompletedAsync(force, apiVersion, successful).ConfigureAwait(false);
+        await OnBeforeUpdateStatesAsync(force).ConfigureAwait(false);
+        var successful = await OnUpdateStatesAsync(force).ConfigureAwait(false);
+        await OnUpdateStatesCompletedAsync(force, successful).ConfigureAwait(false);
         return successful;
     }
 

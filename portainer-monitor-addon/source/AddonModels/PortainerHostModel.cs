@@ -133,7 +133,7 @@ internal class PortainerHostModel : ModelBase
     #region Public Methods
 
     /// <inheritdoc />
-    internal override async Task<bool> OnUpdateStatesAsync(bool force, Version apiVersion)
+    internal override async Task<bool> OnUpdateStatesAsync(bool force)
     {
         // Do not use the apiVersion! We get this info inside the UpdateVersionInfo
         force = force || _deviceOutdated;
@@ -159,7 +159,7 @@ internal class PortainerHostModel : ModelBase
             return false;
         }
 
-        successful = await UpdateEndpoints(endpoints, force, Version).ConfigureAwait(false);
+        successful = await UpdateEndpoints(endpoints, force).ConfigureAwait(false);
         if (successful)
         {
             _sensorAmountContainers.Value = _endpoints.Values.Sum(ep => ep.Containers.Count());
@@ -229,7 +229,7 @@ internal class PortainerHostModel : ModelBase
         return Task.FromResult(Version > HaDevice.DefaultDeviceVersion);
     }
 
-    private async Task<bool> UpdateEndpoints(IReadOnlyCollection<PortainerEndpoint> endpoints, bool force, Version apiVersion)
+    private async Task<bool> UpdateEndpoints(IReadOnlyCollection<PortainerEndpoint> endpoints, bool force)
     {
         var successful = true;
         foreach (var ep in endpoints)
@@ -240,14 +240,14 @@ internal class PortainerHostModel : ModelBase
             if (_endpoints.TryGetValue(key, out var epModel))
             {
                 epModel.LatestInfo = ep;
-                successful |= await epModel.UpdateAsync(force, apiVersion).ConfigureAwait(false);
+                successful |= await epModel.UpdateAsync(force).ConfigureAwait(false);
                 continue;
             }
 
             epModel = new PortainerEndpointModel(this, ep);
             Log.Information($"Host: Endpoint `{epModel.Name}` on Host `{Name}` became available and has been added");
             _endpoints.TryAdd(key, epModel);
-            successful |= await epModel.UpdateAsync(true, apiVersion).ConfigureAwait(false);
+            successful |= await epModel.UpdateAsync(force).ConfigureAwait(false);
         }
 
         var removedEndpoints = _endpoints.Where(p => endpoints.All(a => a.Id != p.Value.ID && a.Name != p.Value.Name)).Select(p => p.Key);

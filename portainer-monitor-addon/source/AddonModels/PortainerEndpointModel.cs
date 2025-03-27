@@ -1,6 +1,5 @@
 ﻿namespace HomeAssistant.Addon.PortainerMonitor.AddonModels;
 
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -116,7 +115,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
 
     /// <inheritdoc />
     /// <remarks>Make sure to update <see cref="LatestInfo"/> before update.</remarks>
-    internal override async Task<bool> OnUpdateStatesAsync(bool force, Version apiVersion)
+    internal override async Task<bool> OnUpdateStatesAsync(bool force)
     {
         var containers = await PortainerApi.GetAllContainersAsync(ID).ConfigureAwait(false);
         if (containers == null)
@@ -127,7 +126,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
 
         _sensorDockerVersion.Value = LatestInfo.Snapshots.LastOrDefault()?.DockerVersion ?? string.Empty;
 
-        var successful = await UpdateContainersAsync(containers, force, apiVersion).ConfigureAwait(false);
+        var successful = await UpdateContainersAsync(containers, force).ConfigureAwait(false);
         if (successful)
         {
             _sensorAmountContainers.Value = _containers.Count;
@@ -181,7 +180,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
         return MqttClient.PublishAsync(Availability.Topic, _isAvailable.Value ? HaAvailability.IsAvailable : HaAvailability.IsUnavailable, retain: true);
     }
 
-    private async Task<bool> UpdateContainersAsync(IReadOnlyCollection<DockerContainer> containers, bool force, Version apiVersion)
+    private async Task<bool> UpdateContainersAsync(IReadOnlyCollection<DockerContainer> containers, bool force)
     {
         var successful = true;
         foreach (var ct in containers)
@@ -189,14 +188,14 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
             if (_containers.TryGetValue(ct.Id, out var ctModel))
             {
                 ctModel.LatestInfo = ct;
-                successful |= await ctModel.UpdateAsync(force, apiVersion).ConfigureAwait(false);
+                successful |= await ctModel.UpdateAsync(force).ConfigureAwait(false);
                 continue;
             }
 
             ctModel = new DockerContainerModel(this, ct);
             Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` Endpoint `{Name}` became available and has been added");
             _containers.TryAdd(ctModel.ID, ctModel);
-            successful |= await ctModel.UpdateAsync(true, apiVersion).ConfigureAwait(false);
+            successful |= await ctModel.UpdateAsync(force).ConfigureAwait(false);
         }
 
         var removeContainers = _containers.Keys.Where(k => containers.All(a => a.Id != k));
