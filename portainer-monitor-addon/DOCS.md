@@ -8,6 +8,7 @@
 - Sensors with state of each container (`Created`, `Restarting` ,`Running` ,`Removing` ,`Paused` ,`Exited` ,`Dead`)
 - Toggle switch to `start` or `stop` each container
 - Buttons to `pause` or `restart` each container
+- Entity availability per portainer host and portainer endpoint
 
 <img src="https://github.com/user-attachments/assets/71f62f6e-211d-49c4-a990-738a668d59e1" width="750" />
 <img src="https://github.com/user-attachments/assets/444e8113-b977-493f-9725-a211bb95fbd5" width="279" />

@@ -22,7 +22,7 @@ internal abstract class HaEntityBase : IDisposable
     /// <summary>
     /// Force State Update amount of times after successful connect/re-connect
     /// </summary>
-    private const ushort ForceStateUpdateCnt = 2;
+    private const ushort ForceStateUpdateCnt = 3;
 
     private static readonly Regex _allowedEntityIdRegex = new("[^A-Za-z0-9_]");
 

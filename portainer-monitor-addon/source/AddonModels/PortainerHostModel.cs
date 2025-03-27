@@ -31,7 +31,6 @@ internal class PortainerHostModel : ModelBase
     private readonly HaSensor<int> _sensorStoppedCnt;
     private readonly HaUpdate _updateItem;
     private bool _deviceOutdated = true;
-    private bool? _isAvailable;
 
     #endregion
 
@@ -123,11 +122,6 @@ internal class PortainerHostModel : ModelBase
         }
     }
 
-    /// <summary>
-    /// Gets the Portainer Host availability.
-    /// </summary>
-    internal Availability Availability { get; }
-
     #endregion
 
     #region Public Methods
@@ -139,25 +133,13 @@ internal class PortainerHostModel : ModelBase
         force = force || _deviceOutdated;
 
         var versionInfo = await PortainerApi.GetVersionAsync().ConfigureAwait(false);
-        if (versionInfo == null)
-        {
-            await SendAvailabilityUpdateAsync(false).ConfigureAwait(false);
-            return false;
-        }
+        if (versionInfo == null) return false;
 
         var successful = await UpdateVersionInfo(versionInfo).ConfigureAwait(false);
-        if (!successful)
-        {
-            await SendAvailabilityUpdateAsync(false).ConfigureAwait(false);
-            return false;
-        }
+        if (!successful)return false;
 
         var endpoints = await PortainerApi.GetEndpointsAsync().ConfigureAwait(false);
-        if (endpoints == null)
-        {
-            await SendAvailabilityUpdateAsync(false).ConfigureAwait(false);
-            return false;
-        }
+        if (endpoints == null) return false;
 
         successful = await UpdateEndpoints(endpoints, force).ConfigureAwait(false);
         if (successful)
@@ -168,29 +150,8 @@ internal class PortainerHostModel : ModelBase
             _sensorStoppedCnt.Value = _endpoints.Values.Sum(ep => ep.Containers.Count(c => c.ContainerState is ContainerState.Exited));
         }
 
-        await SendAvailabilityUpdateAsync(true).ConfigureAwait(false);
         _deviceOutdated = false;
         return true;
-    }
-
-    /// <inheritdoc />
-    protected override void OnMqttConnectionStateChanged(object? sender, bool e)
-    {
-        base.OnMqttConnectionStateChanged(sender, e);
-        if (!IsDisposed && !e)
-        {
-            _ = SendAvailabilityUpdateAsync(false);
-        }
-    }
-
-    /// <inheritdoc />
-    protected override void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
-    {
-        base.OnHomeAssistantAvailabilityChanged(sender, e);
-        if (!IsDisposed && !e)
-        {
-            _ = SendAvailabilityUpdateAsync(false);
-        }
     }
 
     /// <inheritdoc />
@@ -198,7 +159,6 @@ internal class PortainerHostModel : ModelBase
     {
         base.OnDispose(disposing);
         if (!disposing) return;
-        SendAvailabilityUpdateAsync(false).Wait();
         foreach (var endpointModel in _endpoints.Values) { endpointModel.Dispose(); }
         _endpoints.Clear();
     }
@@ -206,13 +166,6 @@ internal class PortainerHostModel : ModelBase
     #endregion
 
     #region Private Methods
-
-    private Task SendAvailabilityUpdateAsync(bool isAvailable)
-    {
-        if (isAvailable == _isAvailable) return Task.CompletedTask;
-        _isAvailable = isAvailable;
-        return MqttClient.PublishAsync(Availability.Topic, _isAvailable.Value ? HaAvailability.IsAvailable : HaAvailability.IsUnavailable, retain: true);
-    }
 
     private Task<bool> UpdateVersionInfo(SystemVersionResponse versionInfo)
     {

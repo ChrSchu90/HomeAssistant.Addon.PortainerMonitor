@@ -26,7 +26,6 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     private readonly HaSensor<int> _sensorRunningCnt;
     private readonly HaSensor<int> _sensorPausedCnt;
     private readonly HaSensor<int> _sensorStoppedCnt;
-    private bool? _isAvailable;
 
     #endregion
 
@@ -104,11 +103,6 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     /// </summary>
     internal PortainerEndpoint LatestInfo { get; set; }
 
-    /// <summary>
-    /// Gets the Portainer Endpoint availability.
-    /// </summary>
-    internal Availability Availability { get; }
-
     #endregion
 
     #region Public Methods
@@ -118,11 +112,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     internal override async Task<bool> OnUpdateStatesAsync(bool force)
     {
         var containers = await PortainerApi.GetAllContainersAsync(ID).ConfigureAwait(false);
-        if (containers == null)
-        {
-            await SendAvailabilityUpdateAsync(false).ConfigureAwait(false);
-            return false;
-        }
+        if (containers == null) return false;
 
         _sensorDockerVersion.Value = LatestInfo.Snapshots.LastOrDefault()?.DockerVersion ?? string.Empty;
 
@@ -135,28 +125,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
             _sensorStoppedCnt.Value = _containers.Values.Count(c => c.ContainerState is ContainerState.Exited);
         }
 
-        await SendAvailabilityUpdateAsync(true).ConfigureAwait(false);
         return true;
-    }
-
-    /// <inheritdoc />
-    protected override void OnMqttConnectionStateChanged(object? sender, bool e)
-    {
-        base.OnMqttConnectionStateChanged(sender, e);
-        if (!IsDisposed && !e)
-        {
-            _ = SendAvailabilityUpdateAsync(false);
-        }
-    }
-
-    /// <inheritdoc />
-    protected override void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
-    {
-        base.OnHomeAssistantAvailabilityChanged(sender, e);
-        if (!IsDisposed && !e)
-        {
-            _ = SendAvailabilityUpdateAsync(false);
-        }
     }
 
     /// <inheritdoc />
@@ -164,7 +133,6 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     {
         base.OnDispose(disposing);
         if (!disposing) return;
-        SendAvailabilityUpdateAsync(false).Wait();
         foreach (var containerModel in _containers.Values) { containerModel.Dispose(); }
         _containers.Clear();
     }
@@ -172,14 +140,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     #endregion
 
     #region Private Methods
-
-    private Task SendAvailabilityUpdateAsync(bool isAvailable)
-    {
-        if (isAvailable == _isAvailable) return Task.CompletedTask;
-        _isAvailable = isAvailable;
-        return MqttClient.PublishAsync(Availability.Topic, _isAvailable.Value ? HaAvailability.IsAvailable : HaAvailability.IsUnavailable, retain: true);
-    }
-
+    
     private async Task<bool> UpdateContainersAsync(IReadOnlyCollection<DockerContainer> containers, bool force)
     {
         var successful = true;

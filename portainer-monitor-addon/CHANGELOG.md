@@ -1,4 +1,8 @@
 ﻿## Changelog 🚀
+### 1.0.8
+- Implement per host and endpoint availability
+- Refactoring and performance improvements
+
 ### 1.0.7
 - Fixed unintended cyclic entity state updates
 - Improved handling for unavailable Portainer host

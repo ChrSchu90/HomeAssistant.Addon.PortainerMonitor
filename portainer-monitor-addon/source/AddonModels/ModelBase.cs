@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
 using HomeAssistant.Addon.PortainerMonitor.Portainer;
+using Serilog;
 
 /// <summary>
 /// Base class for all addon models
@@ -25,6 +26,7 @@ internal abstract class ModelBase : IDisposable
     #region Private Fields
 
     private readonly ConcurrentDictionary<string, HaEntityBase> _haEntities = new();
+    private bool? _isAvailable;
 
     #endregion
 
@@ -44,13 +46,13 @@ internal abstract class ModelBase : IDisposable
         MqttClient = mqttClient;
         Device = device;
         NameID = nameID;
-        MqttIdPrefix = !string.IsNullOrWhiteSpace(parentMqttIdPrefix) ? 
+        MqttIdPrefix = !string.IsNullOrWhiteSpace(parentMqttIdPrefix) ?
                            HaEntityBase.BuildID(parentMqttIdPrefix, nameID) :
                            HaEntityBase.BuildID(nameID);
         MqttClient.ConnectionStateChanged += OnMqttConnectionStateChanged;
         MqttClient.HomeAssistantAvailabilityChanged += OnHomeAssistantAvailabilityChanged;
     }
-    
+
     #endregion
 
     #region Events
@@ -90,6 +92,11 @@ internal abstract class ModelBase : IDisposable
     internal bool IsDisposed { get; private set; }
 
     /// <summary>
+    /// Gets the model availability.
+    /// </summary>
+    protected internal Availability? Availability { get; protected set; }
+
+    /// <summary>
     /// Gets the child entities.
     /// </summary>
     protected IReadOnlyDictionary<string, HaEntityBase> Entities => _haEntities;
@@ -101,7 +108,7 @@ internal abstract class ModelBase : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        if(IsDisposed) return;
+        if (IsDisposed) return;
         IsDisposed = true;
         OnDispose(true);
         GC.SuppressFinalize(this);
@@ -135,6 +142,8 @@ internal abstract class ModelBase : IDisposable
         {
             await entity.SendStateAsync(force).ConfigureAwait(false);
         }
+
+        await SendAvailabilityUpdateAsync(successful).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -235,6 +244,10 @@ internal abstract class ModelBase : IDisposable
     /// <param name="e">if set to <c>true</c> connected, otherwise <c>false</c>.</param>
     protected virtual void OnMqttConnectionStateChanged(object? sender, bool e)
     {
+        if (!IsDisposed && !e)
+        {
+            _ = SendAvailabilityUpdateAsync(false);
+        }
     }
 
     /// <summary>
@@ -244,6 +257,23 @@ internal abstract class ModelBase : IDisposable
     /// <param name="e">if set to <c>true</c> available, otherwise <c>false</c>.</param>
     protected virtual void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
     {
+        if (!IsDisposed && !e)
+        {
+            _ = SendAvailabilityUpdateAsync(false);
+        }
+    }
+
+    /// <summary>
+    /// Sends an availability update to the <see cref="Availability"/>.
+    /// </summary>
+    /// <param name="isAvailable">The new availability state.</param>
+    protected virtual Task SendAvailabilityUpdateAsync(bool isAvailable)
+    {
+        if (Availability == null || isAvailable == _isAvailable) return Task.CompletedTask;
+        _isAvailable = isAvailable;
+        var availability = _isAvailable.Value ? HaAvailability.IsAvailable : HaAvailability.IsUnavailable;
+        Log.Information($"Availability of `{Availability.Topic}` changed to `{availability}`");
+        return MqttClient.PublishAsync(Availability.Topic, availability, retain: true);
     }
 
     /// <summary>
@@ -255,6 +285,12 @@ internal abstract class ModelBase : IDisposable
         if (!disposing) return;
         MqttClient.ConnectionStateChanged -= OnMqttConnectionStateChanged;
         MqttClient.HomeAssistantAvailabilityChanged -= OnHomeAssistantAvailabilityChanged;
+
+        if (Availability != null)
+        {
+            MqttClient.PublishAsync(Availability.Topic, null, retain: true).Wait();
+        }
+
         foreach (var entity in _haEntities.Values) { entity.Dispose(); }
         _haEntities.Clear();
     }
