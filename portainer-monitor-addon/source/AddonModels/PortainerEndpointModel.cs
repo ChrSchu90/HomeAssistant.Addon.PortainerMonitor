@@ -147,9 +147,9 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
         var removeContainers = _containers.Keys.Where(k => containers.All(a => a.Id != k));
         foreach (var epKey in removeContainers)
         {
-            if (!_containers.TryRemove(epKey, out var ct)) continue;
-            Log.Information($"Endpoint: Container `{ct.Name}` on Host `{Host.Name}` at Endpoint `{Name}` became unavailable and has been removed");
-            ct.Dispose();
+            if (!_containers.TryRemove(epKey, out var ctModel)) continue;
+            Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` at Endpoint `{Name}` became unavailable and has been removed");
+            ctModel.Dispose();
         }
 
         foreach (var ct in containers)

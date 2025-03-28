@@ -1,4 +1,7 @@
 ﻿## Changelog 🚀
+### 1.0.10
+- Fixed unintended container command exeuction
+
 ### 1.0.9
 - Improved internal handling for MQTT and HA online/offline notifications
 - Improved log clarity by removing unavailable containers/endpoints before adding the new ones

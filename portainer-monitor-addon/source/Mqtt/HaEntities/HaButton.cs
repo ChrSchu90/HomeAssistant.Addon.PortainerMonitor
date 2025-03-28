@@ -69,8 +69,9 @@ internal class HaButton : HaEntityBase
     /// <inheritdoc />
     protected override async Task OnCommandMessageReceivedAsync(MqttMessageEventArgs e)
     {
+        if(e.MessageContent == null) return;
         await base.OnCommandMessageReceivedAsync(e).ConfigureAwait(false);
-        await OnSwitchCommandReceived(this, e.MessageContent!).ConfigureAwait(false);
+        await OnSwitchCommandReceived(this, e.MessageContent).ConfigureAwait(false);
     }
 
     /// <summary>

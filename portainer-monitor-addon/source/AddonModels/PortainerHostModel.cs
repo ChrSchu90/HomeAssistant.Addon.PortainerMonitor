@@ -188,9 +188,9 @@ internal class PortainerHostModel : ModelBase
         var removedEndpoints = _endpoints.Where(p => endpoints.All(a => a.Id != p.Value.ID && a.Name != p.Value.Name)).Select(p => p.Key);
         foreach (var epKey in removedEndpoints)
         {
-            if (!_endpoints.TryRemove(epKey, out var epm)) continue;
-            Log.Information($"Host: Endpoint `{epm.Name}` Host `{Name}` became unavailable and has been removed");
-            epm.Dispose();
+            if (!_endpoints.TryRemove(epKey, out var epModel)) continue;
+            Log.Information($"Host: Endpoint `{epModel.Name}` Host `{Name}` became unavailable and has been removed");
+            epModel.Dispose();
         }
 
         foreach (var ep in endpoints)
