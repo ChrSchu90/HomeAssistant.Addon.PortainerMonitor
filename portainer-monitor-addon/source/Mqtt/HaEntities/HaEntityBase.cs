@@ -50,8 +50,8 @@ internal abstract class HaEntityBase : IDisposable
         MqttClient = mqttClient;
         ID = id;
 
-        MqttClient.ConnectionStateChanged += OnMqttConnectionStateChanged;
-        MqttClient.HomeAssistantAvailabilityChanged += OnHomeAssistantAvailabilityChanged;
+        MqttClient.ConnectionStateChangedAsync += OnMqttConnectionStateChangedAsync;
+        MqttClient.HomeAssistantAvailabilityChangedAsync += OnHomeAssistantAvailabilityChangedAsync;
     }
 
     #endregion
@@ -335,38 +335,40 @@ internal abstract class HaEntityBase : IDisposable
     protected virtual void OnDispose(bool disposing)
     {
         if (!disposing) return;
-        MqttClient.ConnectionStateChanged -= OnMqttConnectionStateChanged;
-        MqttClient.HomeAssistantAvailabilityChanged -= OnHomeAssistantAvailabilityChanged;
+        MqttClient.ConnectionStateChangedAsync -= OnMqttConnectionStateChangedAsync;
+        MqttClient.HomeAssistantAvailabilityChangedAsync -= OnHomeAssistantAvailabilityChangedAsync;
         RevokeAsync().Wait();
     }
 
     /// <summary>
     /// Called when MQTT connection state has changed.
     /// </summary>
-    /// <param name="sender">The sender.</param>
     /// <param name="e">if set to <c>true</c> connected, otherwise <c>false</c>.</param>
-    protected virtual void OnMqttConnectionStateChanged(object? sender, bool e)
+    protected virtual Task OnMqttConnectionStateChangedAsync(ConnectionStateChangedEventArgs e)
     {
-        if (!IsDisposed && !e)
+        if (!IsDisposed && !e.IsConnected)
         {
             Interlocked.Exchange(ref _updateCnt, 0);
             IsStateOutdated = true;
         }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Called when home assistant availability has changed.
     /// </summary>
-    /// <param name="sender">The sender.</param>
     /// <param name="e">if set to <c>true</c> available, otherwise <c>false</c>.</param>
-    protected virtual void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
+    protected virtual Task OnHomeAssistantAvailabilityChangedAsync(AvailabilityChangedEventArgs e)
     {
-        if (!IsDisposed && e)
+        if (!IsDisposed && e.IsAvailable)
         {
             // If becomes available again 
             Interlocked.Exchange(ref _updateCnt, 0);
             IsStateOutdated = true;
         }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>

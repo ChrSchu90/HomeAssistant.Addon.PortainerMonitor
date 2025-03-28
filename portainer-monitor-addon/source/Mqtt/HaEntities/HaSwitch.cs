@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using MQTTnet.Internal;
-using YamlDotNet.Core.Tokens;
 
 /// <summary>
 /// Home Assistant toggle switch entity
@@ -162,23 +161,25 @@ internal class HaSwitch : HaEntityBase
     }
 
     /// <inheritdoc />
-    protected override void OnMqttConnectionStateChanged(object? sender, bool e)
+    protected override Task OnMqttConnectionStateChangedAsync(ConnectionStateChangedEventArgs e)
     {
-        base.OnMqttConnectionStateChanged(sender, e);
-        if (!IsDisposed & e)
+        if (!IsDisposed && e.IsConnected)
         {
             _isChecked = null;
         }
+
+        return base.OnMqttConnectionStateChangedAsync(e);
     }
 
     /// <inheritdoc />
-    protected override void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
+    protected override Task OnHomeAssistantAvailabilityChangedAsync(AvailabilityChangedEventArgs e)
     {
-        base.OnHomeAssistantAvailabilityChanged(sender, e);
-        if (!IsDisposed && e)
+        if (!IsDisposed && e.IsAvailable)
         {
             _isChecked = null;
         }
+
+        return base.OnHomeAssistantAvailabilityChangedAsync(e);
     }
 
     #endregion

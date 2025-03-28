@@ -185,6 +185,14 @@ internal class PortainerHostModel : ModelBase
     private async Task<bool> UpdateEndpoints(IReadOnlyCollection<PortainerEndpoint> endpoints, bool force)
     {
         var successful = true;
+        var removedEndpoints = _endpoints.Where(p => endpoints.All(a => a.Id != p.Value.ID && a.Name != p.Value.Name)).Select(p => p.Key);
+        foreach (var epKey in removedEndpoints)
+        {
+            if (!_endpoints.TryRemove(epKey, out var epm)) continue;
+            Log.Information($"Host: Endpoint `{epm.Name}` Host `{Name}` became unavailable and has been removed");
+            epm.Dispose();
+        }
+
         foreach (var ep in endpoints)
         {
             if (ep.Id == null) continue;
@@ -203,13 +211,7 @@ internal class PortainerHostModel : ModelBase
             successful |= await epModel.UpdateAsync(force).ConfigureAwait(false);
         }
 
-        var removedEndpoints = _endpoints.Where(p => endpoints.All(a => a.Id != p.Value.ID && a.Name != p.Value.Name)).Select(p => p.Key);
-        foreach (var epKey in removedEndpoints)
-        {
-            if (!_endpoints.TryRemove(epKey, out var epm)) continue;
-            Log.Information($"Host: Endpoint `{epm.Name}` Host `{Name}` became unavailable and has been removed");
-            epm.Dispose();
-        }
+        
 
         return successful;
     }

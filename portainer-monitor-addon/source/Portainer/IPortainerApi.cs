@@ -1,10 +1,7 @@
-﻿using HomeAssistant.Addon.PortainerMonitor.Portainer.ApiModels;
+﻿namespace HomeAssistant.Addon.PortainerMonitor.Portainer;
+
+using HomeAssistant.Addon.PortainerMonitor.Portainer.ApiModels;
 using System.Threading.Tasks;
-
-namespace HomeAssistant.Addon.PortainerMonitor.Portainer;
-
-using RestSharp;
-using System;
 
 /// <summary>
 /// Portainer API Access see:

@@ -1,4 +1,8 @@
 ﻿## Changelog 🚀
+### 1.0.9
+- Improved internal handling for MQTT and HA online/offline notifications
+- Improved log clarity by removing unavailable containers/endpoints before adding the new ones
+
 ### 1.0.8
 - Implement per host and endpoint availability
 - Refactoring and performance improvements

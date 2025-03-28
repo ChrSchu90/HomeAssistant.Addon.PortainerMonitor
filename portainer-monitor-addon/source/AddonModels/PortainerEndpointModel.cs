@@ -144,6 +144,14 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     private async Task<bool> UpdateContainersAsync(IReadOnlyCollection<DockerContainer> containers, bool force)
     {
         var successful = true;
+        var removeContainers = _containers.Keys.Where(k => containers.All(a => a.Id != k));
+        foreach (var epKey in removeContainers)
+        {
+            if (!_containers.TryRemove(epKey, out var ct)) continue;
+            Log.Information($"Endpoint: Container `{ct.Name}` on Host `{Host.Name}` at Endpoint `{Name}` became unavailable and has been removed");
+            ct.Dispose();
+        }
+
         foreach (var ct in containers)
         {
             if (_containers.TryGetValue(ct.Id, out var ctModel))
@@ -157,14 +165,6 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
             Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` Endpoint `{Name}` became available and has been added");
             _containers.TryAdd(ctModel.ID, ctModel);
             successful |= await ctModel.UpdateAsync(force).ConfigureAwait(false);
-        }
-
-        var removeContainers = _containers.Keys.Where(k => containers.All(a => a.Id != k));
-        foreach (var epKey in removeContainers)
-        {
-            if (!_containers.TryRemove(epKey, out var ct)) continue;
-            Log.Information($"Endpoint: Container `{ct.Name}` on Host `{Host.Name}` at Endpoint `{Name}` became unavailable and has been removed");
-            ct.Dispose();
         }
 
         return successful;

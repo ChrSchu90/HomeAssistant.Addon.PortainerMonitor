@@ -34,13 +34,15 @@ internal class MqttClient : IMqttClient, IDisposable
     #region Private Fields
 
     private readonly ConcurrentDictionary<string, AsyncEvent<MqttMessageEventArgs>> _subs = new(StringComparer.OrdinalIgnoreCase);
+    private readonly AsyncEvent<ConnectionStateChangedEventArgs> _connectionStateChanged = new();
+    private readonly AsyncEvent<AvailabilityChangedEventArgs> _haAvailabilityChanged = new();
     private readonly SemaphoreSlim _subsSemaphore = new(1, 1);
     private readonly ManagedMqttClientOptions _mqttOptions;
     private readonly IManagedMqttClient _mqttClient;
     private readonly IMqttConfig _config;
     private readonly CancellationToken _ct;
     private TaskCompletionSource? _connectCompletionSrc;
-    private bool _homeAssistantAvailable = true; // Status is not retained and unknown after connect
+    private bool? _homeAssistantAvailable; // Status is not retained and unknown after connect
 
     #endregion
 
@@ -83,11 +85,18 @@ internal class MqttClient : IMqttClient, IDisposable
     #region Events
 
     /// <inheritdoc />
-    public event EventHandler<bool>? ConnectionStateChanged;
-
+    public event Func<ConnectionStateChangedEventArgs, Task> ConnectionStateChangedAsync
+    {
+        add => _connectionStateChanged.AddHandler(value);
+        remove => _connectionStateChanged.RemoveHandler(value);
+    }
 
     /// <inheritdoc />
-    public event EventHandler<bool>? HomeAssistantAvailabilityChanged;
+    public event Func<AvailabilityChangedEventArgs, Task> HomeAssistantAvailabilityChangedAsync
+    {
+        add => _haAvailabilityChanged.AddHandler(value);
+        remove => _haAvailabilityChanged.RemoveHandler(value);
+    }
 
     #endregion
 
@@ -97,7 +106,7 @@ internal class MqttClient : IMqttClient, IDisposable
     public bool IsConnected => !_ct.IsCancellationRequested && _mqttClient.IsStarted && _mqttClient.IsConnected;
 
     /// <inheritdoc />
-    public bool IsHomeAssistantAvailable => _homeAssistantAvailable;
+    public bool IsHomeAssistantAvailable => _homeAssistantAvailable.GetValueOrDefault(true);
 
     #endregion
 
@@ -115,7 +124,7 @@ internal class MqttClient : IMqttClient, IDisposable
         _mqttClient.Dispose();
         _subsSemaphore.Dispose();
     }
-    
+
     /// <summary>
     /// Connects the MQTT client.
     /// </summary>
@@ -129,7 +138,7 @@ internal class MqttClient : IMqttClient, IDisposable
         }
 
         _connectCompletionSrc = new TaskCompletionSource();
-        await  _mqttClient.StartAsync(_mqttOptions).ConfigureAwait(false);
+        await _mqttClient.StartAsync(_mqttOptions).ConfigureAwait(false);
         await SubscribeAsync(HomeAssistantAvailabilityTopic, HomeAssistantAvailability_Changed).ConfigureAwait(false);
         await _connectCompletionSrc.Task.ConfigureAwait(false);
         _connectCompletionSrc = null;
@@ -205,18 +214,27 @@ internal class MqttClient : IMqttClient, IDisposable
     }
 
     /// <summary>
-    /// Invokes the <seealso cref="ConnectionStateChanged"/> event.
+    /// Invokes the <seealso cref="ConnectionStateChangedAsync"/> event.
     /// </summary>
     /// <param name="sender">The sender.</param>
-    /// <param name="isConnected">if set to <c>true</c> [is connected].</param>
-    protected virtual void OnConnectionStateChanged(object sender, bool isConnected)
+    /// <param name="isConnected">if set to <c>true</c> if MQTT client is connected.</param>
+    protected virtual Task OnConnectionStateChangedAsync(IMqttClient sender, bool isConnected)
     {
-        ConnectionStateChanged?.Invoke(sender, isConnected);
+        return _connectionStateChanged.HasHandlers ?
+                   _connectionStateChanged.InvokeAsync(new ConnectionStateChangedEventArgs(sender, isConnected)) :
+                   Task.CompletedTask;
     }
 
-    protected virtual void OnHomeAssistantAvailabilityChanged(object sender, bool isAvailable)
+    /// <summary>
+    /// Invokes the <seealso cref="HomeAssistantAvailabilityChangedAsync"/> event.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="isAvailable">if set to <c>true</c> if home assistant is available.</param>
+    protected virtual Task OnHomeAssistantAvailabilityChangedAsync(IMqttClient sender, bool isAvailable)
     {
-        HomeAssistantAvailabilityChanged?.Invoke(sender, isAvailable);
+        return _haAvailabilityChanged.HasHandlers ?
+                   _haAvailabilityChanged.InvokeAsync(new AvailabilityChangedEventArgs(sender, isAvailable)) :
+                   Task.CompletedTask;
     }
 
     #endregion
@@ -226,8 +244,7 @@ internal class MqttClient : IMqttClient, IDisposable
     private Task MqttClient_ConnectionStateChangedAsync(EventArgs arg)
     {
         Log.Information($"MQTT: Connection state changed to `{(_mqttClient.IsConnected ? "Connected" : "Disconnected")}`");
-        OnConnectionStateChanged(this, _mqttClient.IsConnected);
-        return Task.CompletedTask;
+        return OnConnectionStateChangedAsync(this, _mqttClient.IsConnected);
     }
 
     private Task MqttClient_ConnectingFailedAsync(ConnectingFailedEventArgs e)
@@ -285,13 +302,11 @@ internal class MqttClient : IMqttClient, IDisposable
     {
         Log.Information($"MQTT: Home Assistant availability changed to `{e.MessageContent}`");
         var haAvailable = string.Equals(e.MessageContent, OnlineAvailability, StringComparison.OrdinalIgnoreCase);
-        if (_homeAssistantAvailable != haAvailable)
-        {
-            _homeAssistantAvailable = haAvailable;
-            OnHomeAssistantAvailabilityChanged(this, haAvailable);
-        }
+        if (IsHomeAssistantAvailable == haAvailable)
+            return Task.CompletedTask;
 
-        return Task.CompletedTask;
+        _homeAssistantAvailable = haAvailable;
+        return OnHomeAssistantAvailabilityChangedAsync(this, haAvailable);
     }
 
     #endregion

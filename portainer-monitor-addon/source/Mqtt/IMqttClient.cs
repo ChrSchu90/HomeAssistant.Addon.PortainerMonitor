@@ -15,12 +15,12 @@ internal interface IMqttClient
     /// <summary>
     /// Occurs when MQTT <see cref="IsConnected"/>e has changed.
     /// </summary>
-    event EventHandler<bool> ConnectionStateChanged;
+    event Func<ConnectionStateChangedEventArgs, Task> ConnectionStateChangedAsync;
 
     /// <summary>
     /// Occurs when <seealso cref="IsHomeAssistantAvailable"/>changed.
     /// </summary>
-    event EventHandler<bool> HomeAssistantAvailabilityChanged;
+    event Func<AvailabilityChangedEventArgs, Task> HomeAssistantAvailabilityChangedAsync;
 
     #endregion
 
@@ -65,4 +65,36 @@ internal interface IMqttClient
     public Task<bool> PublishAsync(string topic, string? payload, MqttQualityOfServiceLevel level = MqttQualityOfServiceLevel.AtMostOnce, bool retain = false);
 
     #endregion
+}
+
+/// <summary>
+/// Envent Args for <see cref="IMqttClient.HomeAssistantAvailabilityChangedAsync"/>
+/// </summary>
+internal class AvailabilityChangedEventArgs(IMqttClient _mqttClient, bool _isAvailable) : EventArgs
+{
+    /// <summary>
+    /// Gets a value indicating whether Home Assistant is available.
+    /// </summary>
+    internal bool IsAvailable => _isAvailable;
+
+    /// <summary>
+    /// Gets the MQTT client.
+    /// </summary>
+    internal IMqttClient MqttClient => _mqttClient;
+}
+
+/// <summary>
+/// Event args for <see cref="IMqttClient.ConnectionStateChangedAsync"/>
+/// </summary>
+internal class ConnectionStateChangedEventArgs(IMqttClient _mqttClient, bool _isConnected) : EventArgs
+{
+    /// <summary>
+    /// Gets a value indicating whether the MQTT client is connected.
+    /// </summary>
+    internal bool IsConnected => _isConnected;
+
+    /// <summary>
+    /// Gets the MQTT client.
+    /// </summary>
+    internal IMqttClient MqttClient => _mqttClient;
 }

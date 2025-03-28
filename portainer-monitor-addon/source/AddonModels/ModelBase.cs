@@ -49,8 +49,8 @@ internal abstract class ModelBase : IDisposable
         MqttIdPrefix = !string.IsNullOrWhiteSpace(parentMqttIdPrefix) ?
                            HaEntityBase.BuildID(parentMqttIdPrefix, nameID) :
                            HaEntityBase.BuildID(nameID);
-        MqttClient.ConnectionStateChanged += OnMqttConnectionStateChanged;
-        MqttClient.HomeAssistantAvailabilityChanged += OnHomeAssistantAvailabilityChanged;
+        MqttClient.ConnectionStateChangedAsync += OnMqttConnectionStateChangeAsync;
+        MqttClient.HomeAssistantAvailabilityChangedAsync += OnHomeAssistantAvailabilityChangedAsync;
     }
 
     #endregion
@@ -240,27 +240,23 @@ internal abstract class ModelBase : IDisposable
     /// <summary>
     /// Called when MQTT connection state has changed.
     /// </summary>
-    /// <param name="sender">The sender.</param>
     /// <param name="e">if set to <c>true</c> connected, otherwise <c>false</c>.</param>
-    protected virtual void OnMqttConnectionStateChanged(object? sender, bool e)
+    protected virtual Task OnMqttConnectionStateChangeAsync(ConnectionStateChangedEventArgs e)
     {
-        if (!IsDisposed && !e)
-        {
-            _ = SendAvailabilityUpdateAsync(false);
-        }
+        return !IsDisposed && !e.IsConnected ? 
+                   SendAvailabilityUpdateAsync(false) : 
+                   Task.CompletedTask;
     }
 
     /// <summary>
     /// Called when home assistant availability has changed.
     /// </summary>
-    /// <param name="sender">The sender.</param>
     /// <param name="e">if set to <c>true</c> available, otherwise <c>false</c>.</param>
-    protected virtual void OnHomeAssistantAvailabilityChanged(object? sender, bool e)
+    protected virtual Task OnHomeAssistantAvailabilityChangedAsync(AvailabilityChangedEventArgs e)
     {
-        if (!IsDisposed && !e)
-        {
-            _ = SendAvailabilityUpdateAsync(false);
-        }
+        return !IsDisposed && !e.IsAvailable ? 
+                   SendAvailabilityUpdateAsync(false) : 
+                   Task.CompletedTask;
     }
 
     /// <summary>
@@ -283,8 +279,8 @@ internal abstract class ModelBase : IDisposable
     protected virtual void OnDispose(bool disposing)
     {
         if (!disposing) return;
-        MqttClient.ConnectionStateChanged -= OnMqttConnectionStateChanged;
-        MqttClient.HomeAssistantAvailabilityChanged -= OnHomeAssistantAvailabilityChanged;
+        MqttClient.ConnectionStateChangedAsync -= OnMqttConnectionStateChangeAsync;
+        MqttClient.HomeAssistantAvailabilityChangedAsync -= OnHomeAssistantAvailabilityChangedAsync;
 
         if (Availability != null)
         {
