@@ -19,7 +19,6 @@ internal class HaUpdate : HaEntityBase
 
     #region Private Fields
 
-    private bool? _isUpdateAvailable;
     private readonly UpdateState _updateState = new();
 
     #endregion
@@ -104,21 +103,6 @@ internal class HaUpdate : HaEntityBase
         }
     }
 
-    /// <summary>
-    /// Gets or sets the latest available version.
-    /// </summary>
-    [JsonIgnore]
-    internal bool? IsUpdateAvailable
-    {
-        get => _isUpdateAvailable;
-        set
-        {
-            if (_isUpdateAvailable == value) return;
-            _isUpdateAvailable = value;
-            OnStateChanged();
-        }
-    }
-
     #endregion
 
     #region Public Methods
@@ -135,7 +119,6 @@ internal class HaUpdate : HaEntityBase
         if (!IsDisposed && e.IsConnected)
         {
             _updateState.CurrentVersion = null;
-            _updateState.LatestVersion = null;
         }
 
         return base.OnMqttConnectionStateChangedAsync(e);

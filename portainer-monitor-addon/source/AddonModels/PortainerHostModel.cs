@@ -175,9 +175,9 @@ internal class PortainerHostModel : ModelBase
         // Update available check
         _updateItem.Title = Edition;
         _updateItem.CurrentVersion = Version;
-        _updateItem.LatestVersion = Version.TryParse(versionInfo.LatestVersion, out var latestVersion) ? latestVersion : Version;
+        if(_updateItem.LatestVersion == null || _updateItem.LatestVersion < _updateItem.CurrentVersion || versionInfo.UpdateAvailable == true)
+            _updateItem.LatestVersion = Version.TryParse(versionInfo.LatestVersion, out var latestVersion) ? latestVersion : _updateItem.CurrentVersion;
         _updateItem.ReleaseUrl = $"https://github.com/portainer/portainer/releases/tag/{_updateItem.LatestVersion}";
-        _updateItem.IsUpdateAvailable = versionInfo.UpdateAvailable;
 
         return Task.FromResult(Version > HaDevice.DefaultDeviceVersion);
     }
