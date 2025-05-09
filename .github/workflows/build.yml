@@ -28,10 +28,13 @@ jobs:
         include:
           - arch: "amd64"
             rid: "linux-musl-x64"
+            latest: true
           - arch: "armv7"
             rid: "linux-musl-arm"
+            latest: false
           - arch: "aarch64"
             rid: "linux-musl-arm64"
+            latest: false
     permissions:
       contents: write
       id-token: write
@@ -117,4 +120,4 @@ jobs:
       with:
         tag_name: ${{ steps.addon.outputs.tag }}
         prerelease: false
-        make_latest: false
+        make_latest: ${{ matrix.latest }}
