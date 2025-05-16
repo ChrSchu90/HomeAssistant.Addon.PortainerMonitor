@@ -1,6 +1,7 @@
 ﻿## Changelog 🚀
 ### 1.0.11
 - Fixed possible `BadRequest` API errors on `Start`, `Stop`, `Pause` and `Restart` command execution
+- Fixed Portainer update state
 - Adjustment of log levels for container commands
 
 ### 1.0.10
