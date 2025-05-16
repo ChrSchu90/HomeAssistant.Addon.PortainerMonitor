@@ -1,6 +1,10 @@
 ﻿## Changelog 🚀
+### 1.0.11
+- Fixed possible `BadRequest` API errors on `Start`, `Stop`, `Pause` and `Restart` command execution
+- Adjustment of log levels for container commands
+
 ### 1.0.10
-- Fixed unintended container command exeuction
+- Fixed unintended container command execution
 
 ### 1.0.9
 - Improved internal handling for MQTT and HA online/offline notifications
@@ -29,11 +33,11 @@
 
 ### 1.0.2
 - Add `Docker Version` sensor for each Endpoint
-- Changed udpate label of Portainer update sensor from `Update Available` to `Update`
+- Changed update label of Portainer update sensor from `Update Available` to `Update`
 - Improved removal of MQTT entities on addon stop
 
 ### 1.0.1
 - Fixed value type error inside Endpoint API
 
 ### 1.0.0
-- Inital release
+- Initial release

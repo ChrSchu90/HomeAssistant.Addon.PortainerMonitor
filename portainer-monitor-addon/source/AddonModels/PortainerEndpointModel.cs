@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
-using HomeAssistant.Addon.PortainerMonitor.Portainer.ApiModels;
+using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
 using Serilog;
 
 /// <summary>
@@ -114,7 +114,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
         var containers = await PortainerApi.GetAllContainersAsync(ID).ConfigureAwait(false);
         if (containers == null) return false;
 
-        _sensorDockerVersion.Value = LatestInfo.Snapshots.LastOrDefault()?.DockerVersion ?? string.Empty;
+        _sensorDockerVersion.Value = LatestInfo.Snapshots.LastOrDefault(s => s.DockerVersion != null)?.DockerVersion ?? string.Empty;
 
         var successful = await UpdateContainersAsync(containers, force).ConfigureAwait(false);
         if (successful)
@@ -143,7 +143,6 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     
     private async Task<bool> UpdateContainersAsync(IReadOnlyCollection<DockerContainer> containers, bool force)
     {
-        var successful = true;
         var removeContainers = _containers.Keys.Where(k => containers.All(a => a.Id != k));
         foreach (var epKey in removeContainers)
         {
@@ -152,22 +151,39 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
             ctModel.Dispose();
         }
 
+        // ToDo check if parallel updates improve update time
+        //await Parallel.ForEachAsync(containers,
+        //    async (ct, _) =>
+        //    {
+        //        if (_containers.TryGetValue(ct.Id, out var ctModel))
+        //        {
+        //            ctModel.LatestInfo = ct;
+        //            await ctModel.UpdateAsync(force).ConfigureAwait(false);
+        //            return;
+        //        }
+
+        //        ctModel = new DockerContainerModel(this, ct);
+        //        Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` Endpoint `{Name}` became available and has been added");
+        //        _containers.TryAdd(ctModel.ID, ctModel);
+        //        await ctModel.UpdateAsync(force).ConfigureAwait(false);
+        //    }).ConfigureAwait(false);
+
         foreach (var ct in containers)
         {
             if (_containers.TryGetValue(ct.Id, out var ctModel))
             {
                 ctModel.LatestInfo = ct;
-                successful |= await ctModel.UpdateAsync(force).ConfigureAwait(false);
+                await ctModel.UpdateAsync(force).ConfigureAwait(false);
                 continue;
             }
 
             ctModel = new DockerContainerModel(this, ct);
             Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` Endpoint `{Name}` became available and has been added");
             _containers.TryAdd(ctModel.ID, ctModel);
-            successful |= await ctModel.UpdateAsync(force).ConfigureAwait(false);
+            await ctModel.UpdateAsync(force).ConfigureAwait(false);
         }
 
-        return successful;
+        return true;
     }
 
     #endregion

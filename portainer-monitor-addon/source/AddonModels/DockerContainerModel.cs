@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
-using HomeAssistant.Addon.PortainerMonitor.Portainer.ApiModels;
+using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
 using Serilog;
 
 internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
@@ -16,7 +16,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     /// <summary>
     /// The change state command timeout in milliseconds to start/stop/restart or pause the container
     /// </summary>
-    private const int ChangeStateCommandTimeout = 15000;
+    private static readonly TimeSpan ChangeStateCommandTimeout = TimeSpan.FromSeconds(30);
 
     #endregion
 
@@ -92,7 +92,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     /// <summary>
     /// Gets the state of the container.
     /// </summary>
-    internal ContainerState ContainerState => _sensorState.Value;
+    internal ContainerState ContainerState => LatestInfo.State;
 
     /// <summary>
     /// Gets the endpoint of the container.
@@ -110,19 +110,22 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
 
     /// <inheritdoc />
     /// <remarks>Make sure to update <see cref="LatestInfo"/> before update.</remarks>
-    internal override Task<bool> OnUpdateStatesAsync(bool force)
+    internal override async Task<bool> OnUpdateStatesAsync(bool force)
     {
-        // Update Status Sensor
-        if (LatestInfo.State != _sensorState.Value)
-            Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` changed state to `{LatestInfo.State}`");
+        //var containerStats = await PortainerApi.GetContainerStatsAsync(Endpoint.ID, ID).ConfigureAwait(false);
+        //var a = containerStats?.Read?.ToLocalTime();
 
-        _sensorState.Value = LatestInfo.State;
+
+        // Update Status Sensor
+        if (ContainerState != _sensorState.Value)
+            Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` changed state to `{LatestInfo.State}`");
+        _sensorState.Value = ContainerState;
 
         // Update On/Off Switch
         if (!_switchStartStop.IsCommandProcessingActive)
-            _switchStartStop.IsChecked = LatestInfo.State is ContainerState.Restarting or ContainerState.Running;
+            _switchStartStop.IsChecked = ContainerState is ContainerState.Restarting or ContainerState.Running;
 
-        return Task.FromResult(true);
+        return true;
     }
 
     /// <summary>
@@ -136,30 +139,30 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
             if (_disposeToken.IsCancellationRequested)
                 return;
             await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
-            if (!e.CommandValue && _sensorState.Value == ContainerState.Running)
+            if (!e.CommandValue && ContainerState is ContainerState.Running)
             {
-                Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending stop command...");
-                var result = await PortainerApi.StopContainer(Endpoint.ID, ID).ConfigureAwait(false);
-                Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending stop command {(result ? "successful" : "failed!")}");
-                SpinWait.SpinUntil(() => _sensorState.Value is ContainerState.Exited, ChangeStateCommandTimeout);
+                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending stop command...");
+                var result = await PortainerApi.StopContainerAsync(Endpoint.ID, ID).ConfigureAwait(false);
+                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending stop command {(result ? "successful" : "failed!")}");
+                SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Exited, ChangeStateCommandTimeout);
                 return;
             }
 
-            if (e.CommandValue && _sensorState.Value == ContainerState.Exited)
+            if (e.CommandValue && ContainerState is ContainerState.Exited)
             {
-                Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending start command...");
-                var result = await PortainerApi.StartContainer(Endpoint.ID, ID).ConfigureAwait(false);
-                Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending start command {(result ? "successful" : "failed!")}");
-                SpinWait.SpinUntil(() => _sensorState.Value is ContainerState.Running, ChangeStateCommandTimeout);
+                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending start command...");
+                var result = await PortainerApi.StartContainerAsync(Endpoint.ID, ID).ConfigureAwait(false);
+                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending start command {(result ? "successful" : "failed!")}");
+                SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Running, ChangeStateCommandTimeout);
                 return;
             }
 
-            if (e.CommandValue && _sensorState.Value == ContainerState.Paused)
+            if (e.CommandValue && ContainerState is ContainerState.Paused)
             {
-                Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending unpause command...");
-                var result = await PortainerApi.UnpauseContainer(Endpoint.ID, ID).ConfigureAwait(false);
-                Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending unpause command {(result ? "successful" : "failed!")}");
-                SpinWait.SpinUntil(() => _sensorState.Value is ContainerState.Running, ChangeStateCommandTimeout);
+                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending unpause command...");
+                var result = await PortainerApi.UnpauseContainerAsync(Endpoint.ID, ID).ConfigureAwait(false);
+                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending unpause command {(result ? "successful" : "failed!")}");
+                SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Running, ChangeStateCommandTimeout);
             }
         }
         catch (OperationCanceledException) { }
@@ -182,12 +185,12 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
                 return;
             await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
 
-            if (_sensorState.Value == ContainerState.Running)
+            if (ContainerState is ContainerState.Running)
             {
-                Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending restart command...");
-                var result = await PortainerApi.RestartContainer(Endpoint.ID, ID).ConfigureAwait(false);
-                Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending restart command {(result ? "successful" : "failed!")}");
-                SpinWait.SpinUntil(() => _sensorState.Value is ContainerState.Running, ChangeStateCommandTimeout);
+                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending restart command...");
+                var result = await PortainerApi.RestartContainerAsync(Endpoint.ID, ID).ConfigureAwait(false);
+                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending restart command {(result ? "successful" : "failed!")}");
+                SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Running, ChangeStateCommandTimeout);
             }
         }
         catch (OperationCanceledException) { }
@@ -210,12 +213,12 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
                 return;
             await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
 
-            if (_sensorState.Value == ContainerState.Running)
+            if (ContainerState is ContainerState.Running)
             {
-                Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending pause command...");
-                var result = await PortainerApi.PauseContainer(Endpoint.ID, ID).ConfigureAwait(false);
-                Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending pause command {(result ? "successful" : "failed!")}");
-                SpinWait.SpinUntil(() => _sensorState.Value is ContainerState.Paused, ChangeStateCommandTimeout);
+                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending pause command...");
+                var result = await PortainerApi.PauseContainerAsync(Endpoint.ID, ID).ConfigureAwait(false);
+                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending pause command {(result ? "successful" : "failed!")}");
+                SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Paused, ChangeStateCommandTimeout);
             }
         }
         catch (OperationCanceledException) { }

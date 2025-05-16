@@ -1,7 +1,7 @@
 ﻿namespace HomeAssistant.Addon.PortainerMonitor.Portainer;
 
-using HomeAssistant.Addon.PortainerMonitor.Portainer.ApiModels;
 using System.Threading.Tasks;
+using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
 
 /// <summary>
 /// Portainer API Access see:
@@ -49,13 +49,15 @@ internal interface IPortainerApi
     /// <returns> The containers or <c>null</c> </returns>
     Task<DockerContainer[]?> GetAllContainersAsync(int endpointId, bool all = true);
 
+    Task<ContainerStats?> GetContainerStatsAsync(int endpointId, string containerId);
+
     /// <summary>
     /// Starts a container.
     /// </summary>
     /// <param name="endpointId">The endpoint ID.</param>
     /// <param name="containerId">The container ID.</param>
     /// <returns>If the command was send successfully</returns>
-    Task<bool> StartContainer(int endpointId, string containerId);
+    Task<bool> StartContainerAsync(int endpointId, string containerId);
 
     /// <summary>
     /// Stops a container.
@@ -63,7 +65,7 @@ internal interface IPortainerApi
     /// <param name="endpointId">The endpoint ID.</param>
     /// <param name="containerId">The container ID.</param>
     /// <returns>If the command was send successfully</returns>
-    Task<bool> StopContainer(int endpointId, string containerId);
+    Task<bool> StopContainerAsync(int endpointId, string containerId);
 
     /// <summary>
     /// Pauses a container.
@@ -71,7 +73,7 @@ internal interface IPortainerApi
     /// <param name="endpointId">The endpoint ID.</param>
     /// <param name="containerId">The container ID.</param>
     /// <returns>If the command was send successfully</returns>
-    Task<bool> PauseContainer(int endpointId, string containerId);
+    Task<bool> PauseContainerAsync(int endpointId, string containerId);
 
     /// <summary>
     /// Unpauses a container.
@@ -79,7 +81,7 @@ internal interface IPortainerApi
     /// <param name="endpointId">The endpoint ID.</param>
     /// <param name="containerId">The container ID.</param>
     /// <returns>If the command was send successfully</returns>
-    Task<bool> UnpauseContainer(int endpointId, string containerId);
+    Task<bool> UnpauseContainerAsync(int endpointId, string containerId);
 
     /// <summary>
     /// Restarts a container.
@@ -88,7 +90,7 @@ internal interface IPortainerApi
     /// <param name="containerId">The container ID.</param>
     /// <param name="killTimeout">The kill timeout after the container will be killed in seconds.</param>
     /// <returns>If the command was send successfully</returns>
-    Task<bool> RestartContainer(int endpointId, string containerId, ushort killTimeout = 30);
+    Task<bool> RestartContainerAsync(int endpointId, string containerId, ushort killTimeout = 30);
 
     #endregion
 }

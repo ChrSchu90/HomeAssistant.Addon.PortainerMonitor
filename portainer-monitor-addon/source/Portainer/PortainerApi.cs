@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using HomeAssistant.Addon.PortainerMonitor.Portainer.ApiModels;
+using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
 using RestSharp;
 using Serilog;
 
@@ -15,6 +15,11 @@ using Serilog;
 internal class PortainerApi : IPortainerApi, IDisposable
 {
     #region Private Static Fields
+
+    /// <summary>
+    /// An empty json object
+    /// </summary>
+    private const string EmptyJson = "{\n}";
 
     #endregion
 
@@ -88,36 +93,39 @@ internal class PortainerApi : IPortainerApi, IDisposable
         return TryGetAsync<DockerContainer[]?>(new RestRequest($"/endpoints/{endpointId}/docker/containers/json").AddParameter(new GetOrPostParameter("all", $"{all}")));
     }
 
-    /// <inheritdoc />
-    public Task<bool> StartContainer(int endpointId, string containerId)
+    public Task<ContainerStats?> GetContainerStatsAsync(int endpointId, string containerId)
     {
-        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/start", Method.Post));
+        return TryGetAsync<ContainerStats>(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/stats").AddParameter("stream", false).AddParameter("one-shot", true));
     }
 
     /// <inheritdoc />
-    public Task<bool> StopContainer(int endpointId, string containerId)
+    public Task<bool> StartContainerAsync(int endpointId, string containerId)
     {
-        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/stop", Method.Post));
+        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/start").AddBody(EmptyJson, ContentType.Json));
     }
 
     /// <inheritdoc />
-    public Task<bool> PauseContainer(int endpointId, string containerId)
+    public Task<bool> StopContainerAsync(int endpointId, string containerId)
     {
-        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/pause", Method.Post));
+        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/stop").AddBody(EmptyJson, ContentType.Json));
     }
 
     /// <inheritdoc />
-    public Task<bool> UnpauseContainer(int endpointId, string containerId)
+    public Task<bool> PauseContainerAsync(int endpointId, string containerId)
     {
-        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/unpause", Method.Post));
+        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/pause").AddBody(EmptyJson, ContentType.Json));
     }
 
     /// <inheritdoc />
-    public Task<bool> RestartContainer(int endpointId, string containerId, ushort killTimeout = 30)
+    public Task<bool> UnpauseContainerAsync(int endpointId, string containerId)
     {
-        var request = new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/restart", Method.Post).AddParameter("t", $"{killTimeout}");
-        request.Timeout = TimeSpan.FromSeconds(killTimeout) + _client.Options.Timeout; 
-        return TryPostAsync(request);
+        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/unpause").AddBody(EmptyJson, ContentType.Json));
+    }
+
+    /// <inheritdoc />
+    public Task<bool> RestartContainerAsync(int endpointId, string containerId, ushort killTimeout = 30)
+    {
+        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/restart") { Timeout = TimeSpan.FromSeconds(killTimeout) + _client.Options.Timeout }.AddParameter("t", $"{killTimeout}").AddBody(EmptyJson, ContentType.Json));
     }
 
     #endregion
@@ -128,6 +136,7 @@ internal class PortainerApi : IPortainerApi, IDisposable
     {
         try
         {
+            req.Method = Method.Get;
             var res = await _client.GetAsync(req, _ct).ConfigureAwait(false);
             res.ThrowIfError();
 
@@ -147,12 +156,13 @@ internal class PortainerApi : IPortainerApi, IDisposable
     {
         try
         {
+            req.Method = Method.Post;
             var res = await _client.PostAsync(req, _ct).ConfigureAwait(false);
             res.ThrowIfError();
             var successful = res.StatusCode is HttpStatusCode.OK or HttpStatusCode.NoContent;
-            if (successful) 
+            if (successful)
                 Log.Verbose($"Portainer API `{_config.DisplayName}` `{apiFuncName}` `{req.Resource}` successfully sent ({(int)res.StatusCode})");
-            else 
+            else
                 Log.Error($"Portainer API `{_config.DisplayName}` `{apiFuncName}` `{req.Resource}` failed ({(int)res.StatusCode})\n{res.Content}");
             return successful;
         }
@@ -166,7 +176,8 @@ internal class PortainerApi : IPortainerApi, IDisposable
 
     private bool RemoteCertificateValidationCallback(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
     {
-        if (!_config.TlsValidate || sslPolicyErrors == SslPolicyErrors.None) return true;
+        if (!_config.TlsValidate || sslPolicyErrors == SslPolicyErrors.None) 
+            return true;
 
         if (certificate == null || chain == null) return false;
         using var cert = new X509Certificate2(certificate);

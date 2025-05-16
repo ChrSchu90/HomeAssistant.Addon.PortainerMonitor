@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
 using HomeAssistant.Addon.PortainerMonitor.Portainer;
-using HomeAssistant.Addon.PortainerMonitor.Portainer.ApiModels;
+using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
 using Serilog;
 
 /// <summary>
