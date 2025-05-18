@@ -49,6 +49,12 @@ internal interface IPortainerApi
     /// <returns> The containers or <c>null</c> </returns>
     Task<DockerContainer[]?> GetAllContainersAsync(int endpointId, bool all = true);
 
+    /// <summary>
+    /// Gets the container stats with resource usage information asynchronous.
+    /// </summary>
+    /// <param name="endpointId">The endpoint identifier.</param>
+    /// <param name="containerId">The container identifier.</param>
+    /// <returns></returns>
     Task<ContainerStats?> GetContainerStatsAsync(int endpointId, string containerId);
 
     /// <summary>

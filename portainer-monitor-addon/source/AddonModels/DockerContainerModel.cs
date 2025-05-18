@@ -26,9 +26,15 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     private readonly CancellationToken _disposeToken;
     private readonly SemaphoreSlim _sendCommandLock = new(1, 1);
     private readonly HaSensor<ContainerState> _sensorState;
+    private readonly HaSensor<float> _sensorMemoryConsumption;
+    private readonly HaSensor<float> _sensorMemoryUsage;
+    private readonly HaSensor<float> _sensorCpuUsage;
+    private readonly HaSensor<uint> _sensorNetworkDownload;
+    private readonly HaSensor<uint> _sensorNetworkUpload;
     private readonly HaSwitch _switchStartStop;
     private readonly HaButton _buttonPause;
     private readonly HaButton _buttonRestart;
+    private ContainerStats? _oldContainerStats;
 
     #endregion
 
@@ -38,7 +44,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     /// Initializes a new instance of the <see cref="PortainerEndpointModel"/> class.
     /// </summary>
     internal DockerContainerModel(PortainerEndpointModel endpoint, DockerContainer container)
-        : base(endpoint, container.Names.FirstOrDefault()?.Trim('/') ?? container.Id)
+        : base(endpoint, container.Names.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))?.Trim('/') ?? container.Id)
     {
         ID = container.Id;
         LatestInfo = container;
@@ -64,11 +70,49 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
         _buttonRestart.ButtonCommandReceived += OnRestartCommandReceived;
         _buttonRestart.Icon = "mdi:restart";
 
-        _sensorState = CreateSensorEntity<ContainerState>(HaEntityBase.BuildID("status_sensor"), $"{Endpoint.Name} {Name}");
+        _sensorState = CreateSensorEntity<ContainerState>("status_sensor", $"{Endpoint.Name} {Name}");
         _sensorState.Availabilities = [Endpoint.Host.Availability, Endpoint.Availability];
         _sensorState.AvailabilityMode = HaAvailability.ModeAll;
         _sensorState.Icon = "mdi:state-machine";
         _sensorState.StateClass = null;
+
+        _sensorCpuUsage = CreateSensorEntity<float>("cpuusage_sensor", $"{Endpoint.Name} {Name}");
+        _sensorCpuUsage.Availabilities = [Endpoint.Host.Availability, Endpoint.Availability];
+        _sensorCpuUsage.AvailabilityMode = HaAvailability.ModeAll;
+        _sensorCpuUsage.Icon = "mdi:chip";
+        _sensorCpuUsage.StateClass = HaSensorStateClass.MEASUREMENT;
+        _sensorCpuUsage.UnitOfMeasurement = HaUnitOfMeasurement.PERCENTAGE;
+        _sensorCpuUsage.SuggestedDisplayPrecision = 2;
+
+        _sensorMemoryConsumption = CreateSensorEntity<float>("memconsumption_sensor", $"{Endpoint.Name} {Name}");
+        _sensorMemoryConsumption.Availabilities = [Endpoint.Host.Availability, Endpoint.Availability];
+        _sensorMemoryConsumption.AvailabilityMode = HaAvailability.ModeAll;
+        _sensorMemoryConsumption.Icon = "mdi:memory";
+        _sensorMemoryConsumption.StateClass = HaSensorStateClass.MEASUREMENT;
+        _sensorMemoryConsumption.UnitOfMeasurement = HaUnitOfMeasurement.DATA_MEGABYTES;
+        _sensorMemoryConsumption.SuggestedDisplayPrecision = 2;
+
+        _sensorMemoryUsage = CreateSensorEntity<float>("memusage_sensor", $"{Endpoint.Name} {Name}");
+        _sensorMemoryUsage.Availabilities = [Endpoint.Host.Availability, Endpoint.Availability];
+        _sensorMemoryUsage.AvailabilityMode = HaAvailability.ModeAll;
+        _sensorMemoryUsage.Icon = "mdi:memory";
+        _sensorMemoryUsage.StateClass = HaSensorStateClass.MEASUREMENT;
+        _sensorMemoryUsage.UnitOfMeasurement = HaUnitOfMeasurement.PERCENTAGE;
+        _sensorMemoryUsage.SuggestedDisplayPrecision = 2;
+
+        _sensorNetworkDownload = CreateSensorEntity<uint>("download_sensor", $"{Endpoint.Name} {Name}");
+        _sensorNetworkDownload.Availabilities = [Endpoint.Host.Availability, Endpoint.Availability];
+        _sensorNetworkDownload.AvailabilityMode = HaAvailability.ModeAll;
+        _sensorNetworkDownload.Icon = "mdi:download";
+        _sensorNetworkDownload.StateClass = HaSensorStateClass.MEASUREMENT;
+        _sensorNetworkDownload.UnitOfMeasurement = HaUnitOfMeasurement.DATA_RATE_KILOBYTES_PER_SECOND;
+        
+        _sensorNetworkUpload = CreateSensorEntity<uint>("upload_sensor", $"{Endpoint.Name} {Name}");
+        _sensorNetworkUpload.Availabilities = [Endpoint.Host.Availability, Endpoint.Availability];
+        _sensorNetworkUpload.AvailabilityMode = HaAvailability.ModeAll;
+        _sensorNetworkUpload.Icon = "mdi:upload";
+        _sensorNetworkUpload.StateClass = HaSensorStateClass.MEASUREMENT;
+        _sensorNetworkUpload.UnitOfMeasurement = HaUnitOfMeasurement.DATA_RATE_KILOBYTES_PER_SECOND;
     }
 
     #endregion
@@ -110,12 +154,8 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
 
     /// <inheritdoc />
     /// <remarks>Make sure to update <see cref="LatestInfo"/> before update.</remarks>
-    internal override async Task<bool> OnUpdateStatesAsync(bool force)
+    internal override Task<bool> OnUpdateStatesAsync(bool force)
     {
-        //var containerStats = await PortainerApi.GetContainerStatsAsync(Endpoint.ID, ID).ConfigureAwait(false);
-        //var a = containerStats?.Read?.ToLocalTime();
-
-
         // Update Status Sensor
         if (ContainerState != _sensorState.Value)
             Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` changed state to `{LatestInfo.State}`");
@@ -125,7 +165,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
         if (!_switchStartStop.IsCommandProcessingActive)
             _switchStartStop.IsChecked = ContainerState is ContainerState.Restarting or ContainerState.Running;
 
-        return true;
+        return UpdateResourceUsage();
     }
 
     /// <summary>
@@ -242,11 +282,87 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
         _buttonRestart.ButtonCommandReceived -= OnRestartCommandReceived;
 
         _sendCommandLock.Dispose();
+        _oldContainerStats = null;
+    }
+
+    /// <inheritdoc />
+    protected override Task OnHomeAssistantAvailabilityChangedAsync(AvailabilityChangedEventArgs e)
+    {
+        if (!IsDisposed && !e.IsAvailable)
+        {
+            _oldContainerStats = null;
+        }
+
+        return base.OnHomeAssistantAvailabilityChangedAsync(e);
+    }
+
+    /// <inheritdoc />
+    protected override Task OnMqttConnectionStateChangeAsync(ConnectionStateChangedEventArgs e)
+    {
+        if (!IsDisposed && !e.IsConnected)
+        {
+            _oldContainerStats = null;
+        }
+
+        return base.OnMqttConnectionStateChangeAsync(e);
     }
 
     #endregion
 
     #region Private Methods
+
+    private async Task<bool> UpdateResourceUsage()
+    {
+        var containerStats = await PortainerApi.GetContainerStatsAsync(Endpoint.ID, ID).ConfigureAwait(false);
+        if (containerStats == null)
+        {
+            _oldContainerStats = null;
+            return false;
+        }
+
+        CalculateMemoryUsage(containerStats);
+        if (_oldContainerStats == null || _oldContainerStats.Read > containerStats.Read)
+        {
+            _oldContainerStats = containerStats;
+            return true;
+        }
+
+        var timeDiff = containerStats.Read - _oldContainerStats.Read;
+        CalculateCpuUsage(containerStats, _oldContainerStats);
+        CalculateNetworkUsage(containerStats, _oldContainerStats, timeDiff);
+
+        _oldContainerStats = containerStats;
+        return true;
+    }
+
+    private void CalculateMemoryUsage(ContainerStats containerStats)
+    {
+        _sensorMemoryConsumption.Value = containerStats.MemoryStats.UsedMemoryBytes / (1024.0f * 1024.0f);
+        _sensorMemoryUsage.Value = containerStats.MemoryStats.MaxMemoryBytes >= containerStats.MemoryStats.UsedMemoryBytes && containerStats.MemoryStats.UsedMemoryBytes > 0 ?
+                                        (float)(containerStats.MemoryStats.UsedMemoryBytes / (double)containerStats.MemoryStats.MaxMemoryBytes * 100.0) : 0.00f;
+    }
+    
+    private void CalculateCpuUsage(ContainerStats currentStats, ContainerStats oldStats)
+    {
+        var diffContainerUsage = currentStats.CurrentCpuStats.CpuUsage.Total - oldStats.CurrentCpuStats.CpuUsage.Total;
+        var diffSystemUsage = currentStats.CurrentCpuStats.SystemUsage - oldStats.CurrentCpuStats.SystemUsage;
+        
+        _sensorCpuUsage.Value = diffSystemUsage > 0 && diffContainerUsage > 0 ? 
+                                    Math.Max(Math.Min((float)(diffContainerUsage / (double)diffSystemUsage * 100.0), 100.00f), 0.00f) : 0.00f;
+    }
+
+    private void CalculateNetworkUsage(ContainerStats currentStats, ContainerStats oldStats, TimeSpan timeDiff)
+    {
+        var bytesReceived = currentStats.NetworkStats.Select(s => s.Value).Sum(v => (double)v.RxBytes);
+        var oldBytesReceived = oldStats.NetworkStats.Select(s => s.Value).Sum(v => (double)v.RxBytes);
+        var bytesSend = currentStats.NetworkStats.Select(s => s.Value).Sum(v => (double)v.TxBytes);
+        var oldBytesSend = oldStats.NetworkStats.Select(s => s.Value).Sum(v => (double)v.TxBytes);
+        
+        _sensorNetworkDownload.Value = bytesReceived >= oldBytesReceived ?
+                                           (uint)((bytesReceived - oldBytesReceived) / timeDiff.TotalSeconds / 1024) : 0;
+        _sensorNetworkUpload.Value = bytesSend >= oldBytesSend ?
+                                         (uint)((bytesSend - oldBytesSend) / timeDiff.TotalSeconds / 1024) : 0;
+    }
 
     #endregion
 }

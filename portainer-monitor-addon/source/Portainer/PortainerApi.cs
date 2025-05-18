@@ -93,6 +93,7 @@ internal class PortainerApi : IPortainerApi, IDisposable
         return TryGetAsync<DockerContainer[]?>(new RestRequest($"/endpoints/{endpointId}/docker/containers/json").AddParameter(new GetOrPostParameter("all", $"{all}")));
     }
 
+    /// <inheritdoc />
     public Task<ContainerStats?> GetContainerStatsAsync(int endpointId, string containerId)
     {
         return TryGetAsync<ContainerStats>(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/stats").AddParameter("stream", false).AddParameter("one-shot", true));

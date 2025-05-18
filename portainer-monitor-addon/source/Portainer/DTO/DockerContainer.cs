@@ -1,59 +1,70 @@
-﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-namespace HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
+﻿namespace HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
+/// <summary>
+/// Docker container information
+/// </summary>
 public class DockerContainer
 {
-    [JsonPropertyName("Command")]
-    public string Command { get; set; }
-
+    /// <summary>
+    /// Gets the created unix timestamp.
+    /// </summary>
+    /// <remarks>Use the <see cref="CreatedTime"/> as parsed datetime</remarks>
     [JsonPropertyName("Created")]
     public int? Created { get; set; }
 
+    /// <summary>
+    /// Gets the container creation time.
+    /// </summary>
+    /// <remarks>Parsed timestamp from <see cref="Created"/> unix timestamp</remarks>
     [JsonIgnore]
     public DateTimeOffset CreatedTime => DateTimeOffset.FromUnixTimeSeconds(Created ?? 0);
 
-    //[JsonPropertyName("HostConfig")]
-    //public HostConfig HostConfig { get; set; }
-
+    /// <summary>
+    /// Gets the unique container identifier.
+    /// </summary>
     [JsonPropertyName("Id")]
-    public string Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the container image.
+    /// </summary>
     [JsonPropertyName("Image")]
-    public string Image { get; set; }
+    public string Image { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets the container image identifier.
+    /// </summary>
     [JsonPropertyName("ImageID")]
-    public string ImageID { get; set; }
+    public string ImageID { get; set; } = string.Empty;
 
-    [JsonPropertyName("IsPortainer")]
-    public bool? IsPortainer { get; set; }
-
-    [JsonPropertyName("Labels")]
-    public Labels Labels { get; set; }
-
-    //[JsonPropertyName("Mounts")]
-    //public List<Mount> Mounts { get; set; }
-
+    /// <summary>
+    /// Gets the container names.
+    /// </summary>
     [JsonPropertyName("Names")]
-    public List<string> Names { get; set; }
+    public List<string> Names { get; set; } = new();
 
-    //[JsonPropertyName("NetworkSettings")]
-    //public NetworkSettings NetworkSettings { get; set; }
-
-    //[JsonPropertyName("Ports")]
-    //public List<Port> Ports { get; set; }
-
+    /// <summary>
+    /// Gets the container state.
+    /// </summary>
     [JsonPropertyName("State"), JsonConverter(typeof(JsonStringEnumConverter))]
     public ContainerState State { get; set; }
 
-    [JsonPropertyName("Status")]
-    public string Status { get; set; }
+    /// <inheritdoc />
+    public override string ToString()
+    {
+        return $"Container {Names.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))} ({State}) [{Id}]";
+    }
 }
 
+/// <summary>
+/// Container state
+/// </summary>
 public enum ContainerState
 {
     /// <summary>
@@ -90,196 +101,4 @@ public enum ContainerState
     /// A "defunct" container; for example, a container that was only partially removed because resources were kept busy by an external process. dead containers cannot be (re)started, only removed.
     /// </summary>
     [EnumMember(Value = "dead")] Dead
-}
-
-public class Bridge
-{
-    [JsonPropertyName("Aliases")]
-    public object Aliases { get; set; }
-
-    [JsonPropertyName("DNSNames")]
-    public object DNSNames { get; set; }
-
-    [JsonPropertyName("DriverOpts")]
-    public object DriverOpts { get; set; }
-
-    [JsonPropertyName("EndpointID")]
-    public string EndpointID { get; set; }
-
-    [JsonPropertyName("Gateway")]
-    public string Gateway { get; set; }
-
-    [JsonPropertyName("GlobalIPv6Address")]
-    public string GlobalIPv6Address { get; set; }
-
-    [JsonPropertyName("GlobalIPv6PrefixLen")]
-    public int? GlobalIPv6PrefixLen { get; set; }
-
-    [JsonPropertyName("IPAddress")]
-    public string IPAddress { get; set; }
-
-    [JsonPropertyName("IPAMConfig")]
-    public object IPAMConfig { get; set; }
-
-    [JsonPropertyName("IPPrefixLen")]
-    public int? IPPrefixLen { get; set; }
-
-    [JsonPropertyName("IPv6Gateway")]
-    public string IPv6Gateway { get; set; }
-
-    [JsonPropertyName("Links")]
-    public object Links { get; set; }
-
-    [JsonPropertyName("MacAddress")]
-    public string MacAddress { get; set; }
-
-    [JsonPropertyName("NetworkID")]
-    public string NetworkID { get; set; }
-}
-
-public class HostConfig
-{
-    [JsonPropertyName("NetworkMode")]
-    public string NetworkMode { get; set; }
-}
-
-public class Labels
-{
-    [JsonPropertyName("com.docker.desktop.extension.icon")]
-    public string? Icon { get; set; }
-
-    [JsonPropertyName("com.docker.extension.detailed-description")]
-    public string? Description { get; set; }
-
-    [JsonPropertyName("com.docker.extension.publisher-url")]
-    public string? PublisherUrl { get; set; }
-
-    [JsonPropertyName("io.portainer.server")]
-    public string? IsPortainerServer { get; set; }
-
-    [JsonPropertyName("org.opencontainers.image.description")]
-    public string? ImageDescription { get; set; }
-
-    [JsonPropertyName("org.opencontainers.image.title")]
-    public string? ImageTitle { get; set; }
-
-    [JsonPropertyName("org.opencontainers.image.vendor")]
-    public string? ImageVendor { get; set; }
-}
-
-public class Mount
-{
-    [JsonPropertyName("Destination")]
-    public string Destination { get; set; }
-
-    [JsonPropertyName("Driver")]
-    public string Driver { get; set; }
-
-    [JsonPropertyName("Mode")]
-    public string Mode { get; set; }
-
-    [JsonPropertyName("Name")]
-    public string Name { get; set; }
-
-    [JsonPropertyName("Propagation")]
-    public string? Propagation { get; set; }
-
-    [JsonPropertyName("RW")]
-    public bool? RW { get; set; }
-
-    [JsonPropertyName("Source")]
-    public string Source { get; set; }
-
-    [JsonPropertyName("Type")]
-    public string Type { get; set; }
-}
-
-public class Networks
-{
-    [JsonPropertyName("bridge")]
-    public Bridge bridge { get; set; }
-}
-
-public class NetworkSettings
-{
-    [JsonPropertyName("Networks")]
-    public Networks Networks { get; set; }
-}
-
-public class Port
-{
-    [JsonPropertyName("IP")]
-    public string IP { get; set; }
-
-    [JsonPropertyName("PrivatePort")]
-    public int? PrivatePort { get; set; }
-
-    [JsonPropertyName("PublicPort")]
-    public int? PublicPort { get; set; }
-
-    [JsonPropertyName("Type")]
-    public string Type { get; set; }
-}
-
-public class ContainerStats
-{
-    [JsonPropertyName("cpu_stats")]
-    public CpuStats CurrentCpuStats { get; set; }
-
-    //[JsonPropertyName("precpu_stats")]
-    //public CpuStats? PreviousCpuStats { get; set; }
-
-    [JsonPropertyName("read")]
-    public DateTimeOffset? Read { get; set; }
-
-    //[JsonPropertyName("preread")]
-    //public DateTimeOffset? PreviousRead { get; set; }
-
-    [JsonPropertyName("memory_stats")]
-    public MemoryStats MemoryStats { get; set; }
-
-    [JsonPropertyName("networks")]
-    public Dictionary<string, NetworkStats> NetworkStats { get; } = new();
-}
-
-public class CpuStats
-{
-    [JsonPropertyName("cpu_usage")]
-    public CpuUsage CpuUsage { get; set; }
-    
-    [JsonPropertyName("online_cpus")]
-    public ushort CoreCount { get; set; }
-
-    [JsonPropertyName("system_cpu_usage")]
-    public ulong SystemUsage { get; set; }
-}
-
-public class CpuUsage
-{
-    [JsonPropertyName("total_usage")]
-    public ulong Total { get; set; }
-
-    [JsonPropertyName("usage_in_kernelmode")]
-    public ulong Kernel { get; set; }
-
-    [JsonPropertyName("usage_in_usermode")]
-    public ulong User { get; set; }
-}
-
-public class MemoryStats
-{
-    [JsonPropertyName("limit")]
-    public ulong MaxMemoryBytes { get; set; }
-
-    [JsonPropertyName("usage")]
-    public ulong UsedMemoryBytes { get; set; }
-}
-
-public class NetworkStats
-{
-    [JsonPropertyName("rx_bytes")]
-    public ulong RxBytes { get; set; }
-
-    [JsonPropertyName("tx_bytes")]
-    public ulong TxBytes { get; set; }
 }
