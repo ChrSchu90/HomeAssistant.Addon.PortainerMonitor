@@ -164,7 +164,7 @@ public class Program
             portainerConnections.ForEach(c => c.Dispose());
 
             // Wait for MQTT entity delete publishes send during disposal  
-            await Task.Delay(1000, CancellationToken.None).ConfigureAwait(false);
+            await Task.Delay(1500, CancellationToken.None).ConfigureAwait(false);
             mqttClient.Dispose();
             Log.Information("Shutdown completed!");
         });

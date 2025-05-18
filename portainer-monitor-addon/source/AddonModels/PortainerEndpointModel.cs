@@ -37,7 +37,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     internal PortainerEndpointModel(PortainerHostModel host, PortainerEndpoint endpoint)
         : base(host, endpoint.Name)
     {
-        ID = endpoint.Id!.Value;
+        ID = endpoint.Id;
         Name = endpoint.Name;
         LatestInfo = endpoint;
         
@@ -114,7 +114,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
         var containers = await PortainerApi.GetAllContainersAsync(ID).ConfigureAwait(false);
         if (containers == null) return false;
 
-        _sensorDockerVersion.Value = LatestInfo.Snapshots.LastOrDefault(s => s.DockerVersion != null)?.DockerVersion ?? string.Empty;
+        _sensorDockerVersion.Value = LatestInfo.Snapshots.FirstOrDefault(s => s.DockerVersion != null)?.DockerVersion ?? string.Empty;
 
         var successful = await UpdateContainersAsync(containers, force).ConfigureAwait(false);
         if (successful)

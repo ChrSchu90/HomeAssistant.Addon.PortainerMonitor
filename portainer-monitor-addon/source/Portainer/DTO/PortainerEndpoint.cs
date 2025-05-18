@@ -14,7 +14,7 @@ public class PortainerEndpoint
     /// </summary>
     /// <value>Environment(Endpoint) Identifier</value>
     [JsonPropertyName("Id")]
-    public int? Id { get; set; }
+    public int Id { get; set; }
 
     /// <summary>
     /// Environment(Endpoint) name
@@ -28,7 +28,7 @@ public class PortainerEndpoint
     /// </summary>
     /// <value>List of snapshots</value>
     [JsonPropertyName("Snapshots")]
-    public List<PortainerDockerSnapshot> Snapshots { get; } = [];
+    public List<PortainerDockerSnapshot> Snapshots { get; set; } = [];
 
     /// <inheritdoc />
     public override string ToString()  {
