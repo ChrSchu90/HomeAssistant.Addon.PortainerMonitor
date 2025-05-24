@@ -167,9 +167,9 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
 
             if (removed)
             {
-                removed = false;
                 // Wait after removal due to too fast remove+add that could lead into dead HA entries
-                if (removed) await Task.Delay(500).ConfigureAwait(false);
+                removed = false;
+                await Task.Delay(500).ConfigureAwait(false);
             }
 
             ctModel = new DockerContainerModel(this, ct);

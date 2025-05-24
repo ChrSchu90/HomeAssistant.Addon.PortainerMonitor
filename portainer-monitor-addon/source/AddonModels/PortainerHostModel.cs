@@ -214,9 +214,9 @@ internal class PortainerHostModel : ModelBase
 
             if (removed)
             {
-                removed = false;
                 // Wait after removal due to too fast remove+add that could lead into dead HA entries
-                if (removed) await Task.Delay(1000).ConfigureAwait(false);
+                removed = false;
+                await Task.Delay(1000).ConfigureAwait(false);
             }
 
             epModel = new PortainerEndpointModel(this, ep);
