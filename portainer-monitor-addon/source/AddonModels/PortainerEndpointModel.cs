@@ -43,29 +43,31 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
         
         Availability = new() { Topic = string.Format(AvailabilityTopic, MqttIdPrefix) };
 
+        var endpointAvailabilities = CreateAvailabilities(Host.Availability, Availability);
+
         _sensorDockerVersion = CreateSensorEntity<string>("dockerversion_sensor", $"{Name} Docker Version");
-        _sensorDockerVersion.Availabilities = [Host.Availability, Availability];
+        _sensorDockerVersion.Availabilities = endpointAvailabilities;
         _sensorDockerVersion.AvailabilityMode = HaAvailability.ModeAll;
         _sensorDockerVersion.Icon = "mdi:information-outline";
         _sensorDockerVersion.StateClass = null;
 
         _sensorAmountContainers = CreateSensorEntity<int>("amntcontainers_sensor", $"{Name} Containers");
-        _sensorAmountContainers.Availabilities = [Host.Availability, Availability];
+        _sensorAmountContainers.Availabilities = endpointAvailabilities;
         _sensorAmountContainers.AvailabilityMode = HaAvailability.ModeAll;
         _sensorAmountContainers.Icon = "mdi:docker";
 
         _sensorRunningCnt = CreateSensorEntity<int>("runningcnt_sensor", $"{Name} Running");
-        _sensorRunningCnt.Availabilities = [Host.Availability, Availability];
+        _sensorRunningCnt.Availabilities = endpointAvailabilities;
         _sensorRunningCnt.AvailabilityMode = HaAvailability.ModeAll;
         _sensorRunningCnt.Icon = "mdi:play";
 
         _sensorPausedCnt = CreateSensorEntity<int>("pausedcnt_sensor", $"{Name} Paused");
-        _sensorPausedCnt.Availabilities = [Host.Availability, Availability];
+        _sensorPausedCnt.Availabilities = endpointAvailabilities;
         _sensorPausedCnt.AvailabilityMode = HaAvailability.ModeAll;
         _sensorPausedCnt.Icon = "mdi:pause";
 
         _sensorStoppedCnt = CreateSensorEntity<int>("stoppedcnt_sensor", $"{Name} Stopped");
-        _sensorStoppedCnt.Availabilities = [Host.Availability, Availability];
+        _sensorStoppedCnt.Availabilities = endpointAvailabilities;
         _sensorStoppedCnt.AvailabilityMode = HaAvailability.ModeAll;
         _sensorStoppedCnt.Icon = "mdi:stop";
     }
@@ -144,30 +146,16 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
     private async Task<bool> UpdateContainersAsync(IReadOnlyCollection<DockerContainer> containers, bool force)
     {
         var removeContainers = _containers.Keys.Where(k => containers.All(a => a.Id != k));
+        var removed = false;
         foreach (var epKey in removeContainers)
         {
             if (!_containers.TryRemove(epKey, out var ctModel)) continue;
             Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` at Endpoint `{Name}` became unavailable and has been removed");
             ctModel.Dispose();
+            removed = true;
         }
 
         // ToDo check if parallel updates improve update time
-        //await Parallel.ForEachAsync(containers,
-        //    async (ct, _) =>
-        //    {
-        //        if (_containers.TryGetValue(ct.Id, out var ctModel))
-        //        {
-        //            ctModel.LatestInfo = ct;
-        //            await ctModel.UpdateAsync(force).ConfigureAwait(false);
-        //            return;
-        //        }
-
-        //        ctModel = new DockerContainerModel(this, ct);
-        //        Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` Endpoint `{Name}` became available and has been added");
-        //        _containers.TryAdd(ctModel.ID, ctModel);
-        //        await ctModel.UpdateAsync(force).ConfigureAwait(false);
-        //    }).ConfigureAwait(false);
-
         foreach (var ct in containers)
         {
             if (_containers.TryGetValue(ct.Id, out var ctModel))
@@ -175,6 +163,13 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
                 ctModel.LatestInfo = ct;
                 await ctModel.UpdateAsync(force).ConfigureAwait(false);
                 continue;
+            }
+
+            if (removed)
+            {
+                removed = false;
+                // Wait after removal due to too fast remove+add that could lead into dead HA entries
+                if (removed) await Task.Delay(500).ConfigureAwait(false);
             }
 
             ctModel = new DockerContainerModel(this, ct);

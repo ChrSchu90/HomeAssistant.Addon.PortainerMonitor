@@ -1,10 +1,10 @@
 ﻿namespace HomeAssistant.Addon.PortainerMonitor;
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -115,11 +115,18 @@ public class Program
             var mqttClient = new MqttClient(addonCfg, MqttClientID, ct);
             await mqttClient.ConnectAsync(true).ConfigureAwait(false);
 
-            // Init portainer connections
-            var portainerConnections = addonCfg.PortainerConfigs.Select(c => new PortainerApi(c, ct)).ToList();
+            var portainerConnections = new List<PortainerApi>();
+            var rootModels = new List<PortainerHostModel>();
+            foreach (var portainerCfg in addonCfg.PortainerConfigs)
+            {
+                // Init portainer connection
+                var portainerConnection = new PortainerApi(portainerCfg, ct);
+                portainerConnections.Add(portainerConnection);
 
-            // Init root addon models that will sync the information to Home Assistant
-            var rootModels = portainerConnections.Select(i => new PortainerHostModel(i, mqttClient, AddonPrefix, AddonManufacturer)).ToList();
+                // Init root addon model that will sync the information to Home Assistant
+                var portainerHost = new PortainerHostModel(portainerCfg, portainerConnection, mqttClient, AddonPrefix, AddonManufacturer);
+                rootModels.Add(portainerHost);
+            }
 
             // Update loop
             var sw = new Stopwatch();

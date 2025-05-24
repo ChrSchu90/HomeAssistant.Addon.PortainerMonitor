@@ -46,6 +46,31 @@ interface IPortainerConfig
     /// </summary>
     bool TlsValidate { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether container commands (start, stop etc.) should be available.
+    /// </summary>
+    bool ContainerCommands { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether container state should be available.
+    /// </summary>
+    bool ContainerStateMonitoring { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether container CPU monitoring should be available.
+    /// </summary>
+    bool ContainerCpuMonitoring { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether container RAM monitoring should be available.
+    /// </summary>
+    bool ContainerRamMonitoring { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether container network monitoring should be available.
+    /// </summary>
+    bool ContainerNetworkMonitoring { get; }
+
     #endregion
 
     #region Methods

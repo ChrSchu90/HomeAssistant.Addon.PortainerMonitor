@@ -31,6 +31,11 @@ public sealed class AddonConfigTests
         cfg.UpdateInterval = 0;
         Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid update interval accepted");
         cfg.UpdateInterval = oldUpdateInterval;
+
+        var oldPortainerConfigs = cfg.PortainerConfigs.ToArray();
+        cfg.PortainerConfigs.Clear();
+        Assert.ThrowsException<ConfigException>(cfg.Validate, "Empty portainer configs accepted");
+        cfg.PortainerConfigs.AddRange(oldPortainerConfigs);
     }
 
     [TestMethod]
@@ -134,14 +139,14 @@ public sealed class AddonConfigTests
                      "tls_validate": false
                    },
                    {
-                 "id": "portainer2",
-                 "display_name": "Portainer 2",
-                 "host": "192.168.10.125",
-                 "port": 9443,
-                 "token": "ptr_AsfasdASddasdasdoaisndaosndonASDN",
-                 "tls_enabled": true,
-                 "tls_validate": false
-               },
+                     "id": "portainer2",
+                     "display_name": "Portainer 2",
+                     "host": "192.168.10.125",
+                     "port": 9443,
+                     "token": "ptr_AsfasdASddasdasdoaisndaosndonASDN",
+                     "tls_enabled": true,
+                     "tls_validate": false
+                   },
                  ]
                }
                """;

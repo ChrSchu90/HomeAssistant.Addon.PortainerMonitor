@@ -39,13 +39,15 @@ internal class PortainerHostModel : ModelBase
     /// <summary>
     /// Initializes a new instance of the <see cref="PortainerHostModel" /> class.
     /// </summary>
+    /// <param name="config">The configuration.</param>
     /// <param name="portainerApi">The Portainer API.</param>
     /// <param name="mqttClient">The MQTT client.</param>
     /// <param name="addonPrefix">The addon entity ID prefix.</param>
     /// <param name="addonManufacturer">The device manufacturer.</param>
-    internal PortainerHostModel(IPortainerApi portainerApi, IMqttClient mqttClient, string addonPrefix, string addonManufacturer)
+    internal PortainerHostModel(IPortainerConfig config, IPortainerApi portainerApi, IMqttClient mqttClient, string addonPrefix, string addonManufacturer)
         : base(portainerApi, mqttClient, new HaDevice(addonPrefix, portainerApi.ID, portainerApi.DisplayName, addonManufacturer), HaEntityBase.BuildID(addonPrefix, portainerApi.ID), null)
     {
+        Config = config;
         Availability = new() { Topic = string.Format(AvailabilityTopic, MqttIdPrefix) };
 
         _updateItem = CreateUpdateEntity("update", "Update");
@@ -87,6 +89,11 @@ internal class PortainerHostModel : ModelBase
     #endregion
 
     #region Properties
+
+    /// <summary>
+    /// Gets the configuration.
+    /// </summary>
+    internal IPortainerConfig Config { get; }
 
     /// <summary>
     /// Gets the display name of the Host.
@@ -184,36 +191,41 @@ internal class PortainerHostModel : ModelBase
 
     private async Task<bool> UpdateEndpoints(IReadOnlyCollection<PortainerEndpoint> endpoints, bool force)
     {
-        var successful = true;
         var removedEndpoints = _endpoints.Where(p => endpoints.All(a => a.Id != p.Value.ID && a.Name != p.Value.Name)).Select(p => p.Key);
+        var removed = false;
         foreach (var epKey in removedEndpoints)
         {
             if (!_endpoints.TryRemove(epKey, out var epModel)) continue;
             Log.Information($"Host: Endpoint `{epModel.Name}` Host `{Name}` became unavailable and has been removed");
             epModel.Dispose();
+            removed = true;
         }
 
+        // ToDo check if parallel updates improve update time
         foreach (var ep in endpoints)
         {
-            if (ep.Id == null) continue;
-
             var key = $"{ep.Name} ({ep.Id})";
             if (_endpoints.TryGetValue(key, out var epModel))
             {
                 epModel.LatestInfo = ep;
-                successful |= await epModel.UpdateAsync(force).ConfigureAwait(false);
+                await epModel.UpdateAsync(force).ConfigureAwait(false);
                 continue;
+            }
+
+            if (removed)
+            {
+                removed = false;
+                // Wait after removal due to too fast remove+add that could lead into dead HA entries
+                if (removed) await Task.Delay(1000).ConfigureAwait(false);
             }
 
             epModel = new PortainerEndpointModel(this, ep);
             Log.Information($"Host: Endpoint `{epModel.Name}` on Host `{Name}` became available and has been added");
             _endpoints.TryAdd(key, epModel);
-            successful |= await epModel.UpdateAsync(force).ConfigureAwait(false);
+            await epModel.UpdateAsync(force).ConfigureAwait(false);
         }
 
-        
-
-        return successful;
+        return true;
     }
 
     #endregion

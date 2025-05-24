@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Portainer;
 using Serilog.Events;
@@ -59,7 +60,7 @@ public class AddonConfig : IMqttConfig
     /// <summary>
     /// Gets or sets the portainer configurations.
     /// </summary>
-    public List<PortainerConfig> PortainerConfigs { get; set; } = [new PortainerConfig { Id = "portainer1" }];
+    public List<PortainerConfig> PortainerConfigs { get; set; } = [];
     
     #endregion
 
@@ -128,6 +129,7 @@ public class AddonConfig : IMqttConfig
         if (MqttPort < 1) throw new ConfigException("`mqtt_port` needs to be at least `1`");
 
         // Portainer configs
+        if(!PortainerConfigs.Any()) throw new ConfigException("`portainer_configs` is empty, at least `1` has to be defined");
         foreach (var config in PortainerConfigs) { config.Validate(); }
     }
 
@@ -173,10 +175,25 @@ public class PortainerConfig : IPortainerConfig
     public string Token { get; set; } = string.Empty;
 
     /// <inheritdoc />
-    public bool TlsEnabled { get; set; } = false;
+    public bool TlsEnabled { get; set; } = true;
 
     /// <inheritdoc />
     public bool TlsValidate { get; set; } = false;
+
+    /// <inheritdoc />
+    public bool ContainerCommands { get; set; } = true;
+
+    /// <inheritdoc />
+    public bool ContainerStateMonitoring { get; set; } = true;
+
+    /// <inheritdoc />
+    public bool ContainerCpuMonitoring { get; set; } = true;
+
+    /// <inheritdoc />
+    public bool ContainerRamMonitoring { get; set; } = true;
+
+    /// <inheritdoc />
+    public bool ContainerNetworkMonitoring { get; set; } = true;
 
     #endregion
 
@@ -187,10 +204,10 @@ public class PortainerConfig : IPortainerConfig
     /// </summary>
     public void Validate()
     {
-        if (string.IsNullOrWhiteSpace(Id)) throw new ConfigException($"Portainer `id` of `{Id}` needs to be defined by IP or hostname");
-        if (string.IsNullOrWhiteSpace(Host)) throw new ConfigException($"Portainer `host` of `{Host}` needs to be defined by IP or hostname");
-        if (string.IsNullOrWhiteSpace(DisplayName)) throw new ConfigException($"Portainer `display_name` of `{DisplayName}` needs to be defined by IP or hostname");
-        if (Port < 1) throw new ConfigException($"Portainer `host` of `{Id}` needs to be at least `1`");
+        if (string.IsNullOrWhiteSpace(Id)) throw new ConfigException($"Portainer `id` of `{Id}` needs to be defined for identification");
+        if (string.IsNullOrWhiteSpace(Host)) throw new ConfigException($"Portainer `host` of `{Id}` needs to be defined by IP or hostname");
+        if (string.IsNullOrWhiteSpace(DisplayName)) throw new ConfigException($"Portainer `display_name` of `{Id}` needs to be defined by IP or hostname");
+        if (Port < 1) throw new ConfigException($"Portainer `port` of `{Id}` needs to be at least `1`");
         if (string.IsNullOrWhiteSpace(Token)) throw new ConfigException($"Portainer `token` of `{Id}` needs to be defined");
     }
 

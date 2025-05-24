@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
@@ -157,6 +158,16 @@ internal abstract class ModelBase : IDisposable
         var successful = await OnUpdateStatesAsync(force).ConfigureAwait(false);
         await OnUpdateStatesCompletedAsync(force, successful).ConfigureAwait(false);
         return successful;
+    }
+
+    /// <summary>
+    /// Creates the availability from multiple availabilities and filters <c>null</c> inputs.
+    /// </summary>
+    /// <param name="availabilities">The availabilities.</param>
+    /// <returns>Returns valid availabilities or <c>null</c> if no valid availability was given</returns>
+    protected static Availability[]? CreateAvailabilities(params Availability?[] availabilities)
+    {
+        return availabilities.Any(a => a != null) ? availabilities.Where(a => a != null).Select(a => a!).ToArray() : null;
     }
 
     /// <summary>
