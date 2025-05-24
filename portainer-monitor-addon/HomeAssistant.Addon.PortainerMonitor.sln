@@ -27,16 +27,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Addon", "Addon", "{2A8CC443
 		run.sh = run.sh
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "debug", "debug", "{71A069A0-4FA3-4D3A-A1DD-D643A4F89AA7}"
-	ProjectSection(SolutionItems) = preProject
-		debug\debug.sh = debug\debug.sh
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "data", "data", "{80C9F616-B3A0-40AC-9ACC-30B321093575}"
-	ProjectSection(SolutionItems) = preProject
-		debug\data\options.json = debug\data\options.json
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HomeAssistant.Addon.PortainerMonitor.Tests", "tests\HomeAssistant.Addon.PortainerMonitor.Tests.csproj", "{0FA4790D-3F16-E42C-E022-84571DA2673F}"
 EndProject
 Global
@@ -56,10 +46,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{71A069A0-4FA3-4D3A-A1DD-D643A4F89AA7} = {2A8CC443-E04D-4CE0-99B4-D253B5BA1C8F}
-		{80C9F616-B3A0-40AC-9ACC-30B321093575} = {71A069A0-4FA3-4D3A-A1DD-D643A4F89AA7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2149ACC6-C4BB-4E01-BD20-AAEA9515EDAF}
