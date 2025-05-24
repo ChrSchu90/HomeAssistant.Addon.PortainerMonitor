@@ -1,6 +1,11 @@
 ﻿## Changelog 🚀
+### 1.1.0
+- Add container resource monitoring for `CPU usage`, `RAM usage`, `Download` and `Upload`
+- Add options to enable/disable container `commands (start, stop...)`, `state monitoring`, `CPU monitoring`, `RAM monitoring` and `network monitoring`
+- Fixed error in standalone addon startup due to missing HA Supervisor API
+
 ### 1.0.12
-- Fixed docker version label
+- Fixed docker version sensor
 
 ### 1.0.11
 - Fixed possible `BadRequest` API errors on `Start`, `Stop`, `Pause` and `Restart` command execution
@@ -27,7 +32,7 @@
 - Fixed unavailable entities after HA soft restart
 
 ### 1.0.5
-- Improved entity label naming
+- Improved HA entity label naming
 
 ### 1.0.4
 - Add Sensors with amount of `running`, `stopped`, `paused` and `total` containers per Endpoint
@@ -41,7 +46,7 @@
 - Improved removal of MQTT entities on addon stop
 
 ### 1.0.1
-- Fixed value type error inside Endpoint API
+- Fixed value type error inside Portainer Endpoint API
 
 ### 1.0.0
 - Initial release

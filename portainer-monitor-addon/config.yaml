@@ -1,5 +1,5 @@
 name: "Portainer Monitor"
-version: "1.0.12"
+version: "1.1.0"
 slug: "portainer-monitor-addon"
 description: "Portainer addon to access Docker information and control containers via Portainer API"
 url: "https://github.com/ChrSchu90/HomeAssistant.Addon.PortainerMonitor"
@@ -23,7 +23,12 @@ options:
       port: 9443
       token: 'ptr_...'
       tls_enabled: true
-      tls_validate: false 
+      tls_validate: false
+      container_commands: true
+      container_state_monitoring: true
+      container_cpu_monitoring: true
+      container_ram_monitoring: true
+      container_network_monitoring: true
 schema:
   log_level: list(Verbose|Debug|Information|Warning|Error|Fatal)
   update_interval: int(1,120)
@@ -39,5 +44,10 @@ schema:
       host: str
       port: int(1,65535)
       token: str
-      tls_enabled: bool
-      tls_validate: bool 
+      tls_enabled: bool?
+      tls_validate: bool?
+      container_commands: bool?
+      container_state_monitoring: bool?
+      container_cpu_monitoring: bool?
+      container_ram_monitoring: bool?
+      container_network_monitoring: bool?
