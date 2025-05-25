@@ -34,17 +34,17 @@
 7. Add the **Portainer Configurations** inside the options, nothing more is to do *(MQTT details are optional and will be taken via Home Assistant Supervisor API)*. You can also use secrets e.g. ` token: "!secret token_portainer_server1"`
    >``` yaml
    >- id: server1
-   >  display_name: 'Server 1'
-   >  host: 192.168.10.124
-   >  port: 9443
-   >  token: 'ptr_...'
-   >  tls_enabled: true
-   >  tls_validate: false
-   >  container_commands: true
-   >  container_state_monitoring: true
-   >  container_cpu_monitoring: true
-   >  container_ram_monitoring: true
-   >  container_network_monitoring: true
+   >   display_name: 'Server 1'
+   >   host: 192.168.10.124
+   >   port: 9443
+   >   token: 'ptr_...'
+   >   tls_enabled: true
+   >   tls_validate: false
+   >   container_commands: true
+   >   container_state_monitoring: true
+   >   container_cpu_monitoring: true
+   >   container_ram_monitoring: true
+   >   container_network_monitoring: true
    >```
    ><img src="https://github.com/user-attachments/assets/86bfb9f0-a938-4d11-852a-117b00a5e0e3" width="900" />
 
