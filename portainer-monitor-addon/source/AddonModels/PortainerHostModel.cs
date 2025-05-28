@@ -201,7 +201,6 @@ internal class PortainerHostModel : ModelBase
             removed = true;
         }
 
-        // ToDo check if parallel updates improve update time
         foreach (var ep in endpoints)
         {
             var key = $"{ep.Name} ({ep.Id})";

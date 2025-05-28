@@ -134,6 +134,7 @@ internal class MqttClient : IMqttClient, IDisposable
         if (!waitForResult)
         {
             await _mqttClient.StartAsync(_mqttOptions).ConfigureAwait(false);
+            await SubscribeAsync(HomeAssistantAvailabilityTopic, HomeAssistantAvailability_Changed).ConfigureAwait(false);
             return;
         }
 

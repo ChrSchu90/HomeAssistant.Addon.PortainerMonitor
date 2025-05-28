@@ -3,7 +3,7 @@
 /// <summary>
 /// Portainer Configuration
 /// </summary>
-interface IPortainerConfig
+public interface IPortainerConfig
 {
     #region Events
 

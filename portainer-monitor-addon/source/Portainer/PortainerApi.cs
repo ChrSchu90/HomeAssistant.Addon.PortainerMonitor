@@ -1,15 +1,16 @@
 ﻿namespace HomeAssistant.Addon.PortainerMonitor.Portainer;
 
+using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
+using RestSharp;
+using Serilog;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
-using RestSharp;
-using Serilog;
 
 /// <inheritdoc cref="IPortainerApi" />
 internal class PortainerApi : IPortainerApi, IDisposable
@@ -78,55 +79,65 @@ internal class PortainerApi : IPortainerApi, IDisposable
     /// <inheritdoc />
     public Task<SystemVersionResponse?> GetVersionAsync()
     {
-        return TryGetAsync<SystemVersionResponse>(new RestRequest("/system/version"));
+        return TryGetAsync<SystemVersionResponse>(new RestRequest("system/version"));
     }
 
     /// <inheritdoc />
     public Task<PortainerEndpoint[]?> GetEndpointsAsync()
     {
-        return TryGetAsync<PortainerEndpoint[]>(new RestRequest("/endpoints"));
+        return TryGetAsync<PortainerEndpoint[]>(new RestRequest("endpoints"));
     }
 
     /// <inheritdoc />
     public Task<DockerContainer[]?> GetAllContainersAsync(int endpointId, bool all = true)
     {
-        return TryGetAsync<DockerContainer[]?>(new RestRequest($"/endpoints/{endpointId}/docker/containers/json").AddParameter(new GetOrPostParameter("all", $"{all}")));
+        return TryGetAsync<DockerContainer[]?>(new RestRequest($"endpoints/{endpointId}/docker/containers/json").AddParameter(new GetOrPostParameter("all", $"{all}")));
     }
 
     /// <inheritdoc />
     public Task<ContainerStats?> GetContainerStatsAsync(int endpointId, string containerId)
     {
-        return TryGetAsync<ContainerStats>(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/stats").AddParameter("stream", false).AddParameter("one-shot", true));
+        return TryGetAsync<ContainerStats>(new RestRequest($"endpoints/{endpointId}/docker/containers/{containerId}/stats").AddParameter("stream", false).AddParameter("one-shot", true));
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<ContainerStats> GetContainerStatsStreamAsync(int endpointId, string containerId, [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var response = _client.StreamJsonAsync<ContainerStats>($"endpoints/{endpointId}/docker/containers/{containerId}/stats", _ct);
+        await foreach (var item in response.ConfigureAwait(false))
+        {
+            yield return item;
+        }
     }
 
     /// <inheritdoc />
     public Task<bool> StartContainerAsync(int endpointId, string containerId)
     {
-        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/start").AddBody(EmptyJson, ContentType.Json));
+        return TryPostAsync(new RestRequest($"endpoints/{endpointId}/docker/containers/{containerId}/start").AddBody(EmptyJson, ContentType.Json));
     }
 
     /// <inheritdoc />
     public Task<bool> StopContainerAsync(int endpointId, string containerId)
     {
-        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/stop").AddBody(EmptyJson, ContentType.Json));
+        return TryPostAsync(new RestRequest($"endpoints/{endpointId}/docker/containers/{containerId}/stop").AddBody(EmptyJson, ContentType.Json));
     }
 
     /// <inheritdoc />
     public Task<bool> PauseContainerAsync(int endpointId, string containerId)
     {
-        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/pause").AddBody(EmptyJson, ContentType.Json));
+        return TryPostAsync(new RestRequest($"endpoints/{endpointId}/docker/containers/{containerId}/pause").AddBody(EmptyJson, ContentType.Json));
     }
 
     /// <inheritdoc />
     public Task<bool> UnpauseContainerAsync(int endpointId, string containerId)
     {
-        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/unpause").AddBody(EmptyJson, ContentType.Json));
+        return TryPostAsync(new RestRequest($"endpoints/{endpointId}/docker/containers/{containerId}/unpause").AddBody(EmptyJson, ContentType.Json));
     }
 
     /// <inheritdoc />
     public Task<bool> RestartContainerAsync(int endpointId, string containerId, ushort killTimeout = 30)
     {
-        return TryPostAsync(new RestRequest($"/endpoints/{endpointId}/docker/containers/{containerId}/restart") { Timeout = TimeSpan.FromSeconds(killTimeout) + _client.Options.Timeout }.AddParameter("t", $"{killTimeout}").AddBody(EmptyJson, ContentType.Json));
+        return TryPostAsync(new RestRequest($"endpoints/{endpointId}/docker/containers/{containerId}/restart") { Timeout = TimeSpan.FromSeconds(killTimeout) + _client.Options.Timeout }.AddParameter("t", $"{killTimeout}").AddBody(EmptyJson, ContentType.Json));
     }
 
     #endregion

@@ -155,7 +155,6 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
             removed = true;
         }
 
-        // ToDo check if parallel updates improve update time
         foreach (var ct in containers)
         {
             if (_containers.TryGetValue(ct.Id, out var ctModel))

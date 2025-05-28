@@ -1,7 +1,9 @@
 ﻿namespace HomeAssistant.Addon.PortainerMonitor.Portainer;
 
-using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Portainer API Access see:
@@ -50,12 +52,23 @@ internal interface IPortainerApi
     Task<DockerContainer[]?> GetAllContainersAsync(int endpointId, bool all = true);
 
     /// <summary>
-    /// Gets the container stats with resource usage information asynchronous.
+    /// Gets the container stats with resource usage information.
     /// </summary>
+    /// <remarks>To receive continuous updates use <see cref="GetContainerStatsStreamAsync"/> due to its better performance</remarks>
     /// <param name="endpointId">The endpoint identifier.</param>
     /// <param name="containerId">The container identifier.</param>
-    /// <returns></returns>
+    /// <returns>The container stats</returns>
     Task<ContainerStats?> GetContainerStatsAsync(int endpointId, string containerId);
+
+    /// <summary>
+    /// Gets the container stats with resource usage information as stream.
+    /// </summary>
+    /// <remarks>Make sure to handle thrown exceptions to trigger e.g. reconnects</remarks>
+    /// <param name="endpointId">The endpoint identifier.</param>
+    /// <param name="containerId">The container identifier.</param>
+    /// <param name="ct">The ct.</param>
+    /// <returns>IAsyncEnumerable with the container stats</returns>
+    IAsyncEnumerable<ContainerStats> GetContainerStatsStreamAsync(int endpointId, string containerId, CancellationToken ct = default);
 
     /// <summary>
     /// Starts a container.

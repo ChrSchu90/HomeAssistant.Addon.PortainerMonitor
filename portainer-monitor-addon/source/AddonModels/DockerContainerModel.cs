@@ -36,6 +36,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     private readonly HaButton? _buttonRestart;
     private readonly bool _monitorResources;
     private ContainerStats? _oldContainerStats;
+    private ContainerStats? _latestContainerStats;
     private DockerContainer? _previousInfo;
     private DockerContainer _latestInfo;
 
@@ -93,7 +94,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
             _sensorCpuUsage = CreateSensorEntity<float>("cpuusage_sensor", $"{Endpoint.Name} {Name} CPU");
             _sensorCpuUsage.Availabilities = containerAvailabilities;
             _sensorCpuUsage.AvailabilityMode = HaAvailability.ModeAll;
-            _sensorCpuUsage.Icon = "mdi:chip";
+            _sensorCpuUsage.Icon = "mdi:gauge";
             _sensorCpuUsage.StateClass = HaSensorStateClass.MEASUREMENT;
             _sensorCpuUsage.UnitOfMeasurement = HaUnitOfMeasurement.PERCENTAGE;
             _sensorCpuUsage.SuggestedDisplayPrecision = 2;
@@ -128,6 +129,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
             _sensorNetworkDownload.Icon = "mdi:download";
             _sensorNetworkDownload.StateClass = HaSensorStateClass.MEASUREMENT;
             _sensorNetworkDownload.UnitOfMeasurement = HaUnitOfMeasurement.DATA_RATE_KILOBYTES_PER_SECOND;
+            _sensorNetworkDownload.SuggestedDisplayPrecision = 0;
 
             _sensorNetworkUpload = CreateSensorEntity<uint>("upload_sensor", $"{Endpoint.Name} {Name} Upload");
             _sensorNetworkUpload.Availabilities = containerAvailabilities;
@@ -135,7 +137,10 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
             _sensorNetworkUpload.Icon = "mdi:upload";
             _sensorNetworkUpload.StateClass = HaSensorStateClass.MEASUREMENT;
             _sensorNetworkUpload.UnitOfMeasurement = HaUnitOfMeasurement.DATA_RATE_KILOBYTES_PER_SECOND;
+            _sensorNetworkUpload.SuggestedDisplayPrecision = 0;
         }
+
+        InitResourceUsageStream();
     }
 
     #endregion
@@ -192,18 +197,16 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     /// <remarks>Make sure to update <see cref="LatestInfo"/> before update.</remarks>
     internal override Task<bool> OnUpdateStatesAsync(bool force)
     {
-        // Update Status Sensor
         if (ContainerState != PreviousInfo?.State)
             Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` changed state to `{ContainerState}`");
 
         if (_sensorState != null)
             _sensorState.Value = ContainerState;
 
-        // Update On/Off Switch
         if (_switchStartStop != null && !_switchStartStop.IsCommandProcessingActive)
             _switchStartStop.IsChecked = ContainerState is ContainerState.Restarting or ContainerState.Running;
 
-        return _monitorResources ? UpdateResourceUsage() : Task.FromResult(true);
+        return UpdateResourceUsage();
     }
 
     /// <summary>
@@ -216,6 +219,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
         {
             if (_disposeToken.IsCancellationRequested)
                 return;
+
             await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
             if (!e.CommandValue && ContainerState is ContainerState.Running)
             {
@@ -243,7 +247,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
                 SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Running, ChangeStateCommandTimeout);
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) { /* ignore */ }
         finally
         {
             if (!_disposeToken.IsCancellationRequested)
@@ -261,8 +265,8 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
         {
             if (_disposeToken.IsCancellationRequested)
                 return;
-            await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
 
+            await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
             if (ContainerState is ContainerState.Running)
             {
                 Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending restart command...");
@@ -271,7 +275,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
                 SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Running, ChangeStateCommandTimeout);
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) { /* ignore */ }
         finally
         {
             if (!_disposeToken.IsCancellationRequested)
@@ -289,8 +293,8 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
         {
             if (_disposeToken.IsCancellationRequested)
                 return;
-            await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
 
+            await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
             if (ContainerState is ContainerState.Running)
             {
                 Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending pause command...");
@@ -299,7 +303,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
                 SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Paused, ChangeStateCommandTimeout);
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) { /* ignore */ }
         finally
         {
             if (!_disposeToken.IsCancellationRequested)
@@ -312,12 +316,18 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     {
         base.OnDispose(disposing);
         if (!disposing) return;
+
         _disposeTokenSource.Cancel();
         _disposeTokenSource.Dispose();
 
-        if (_switchStartStop != null) _switchStartStop.SwitchCommandReceived -= OnSwitchCommandReceived;
-        if (_buttonPause != null) _buttonPause.ButtonCommandReceived -= OnPauseCommandReceived;
-        if (_buttonRestart != null) _buttonRestart.ButtonCommandReceived -= OnRestartCommandReceived;
+        if (_switchStartStop != null) 
+            _switchStartStop.SwitchCommandReceived -= OnSwitchCommandReceived;
+
+        if (_buttonPause != null) 
+            _buttonPause.ButtonCommandReceived -= OnPauseCommandReceived;
+
+        if (_buttonRestart != null)
+            _buttonRestart.ButtonCommandReceived -= OnRestartCommandReceived;
 
         _sendCommandLock.Dispose();
         _oldContainerStats = null;
@@ -327,9 +337,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     protected override Task OnHomeAssistantAvailabilityChangedAsync(AvailabilityChangedEventArgs e)
     {
         if (!IsDisposed && !e.IsAvailable)
-        {
             _oldContainerStats = null;
-        }
 
         return base.OnHomeAssistantAvailabilityChangedAsync(e);
     }
@@ -338,9 +346,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     protected override Task OnMqttConnectionStateChangeAsync(ConnectionStateChangedEventArgs e)
     {
         if (!IsDisposed && !e.IsConnected)
-        {
             _oldContainerStats = null;
-        }
 
         return base.OnMqttConnectionStateChangeAsync(e);
     }
@@ -349,59 +355,90 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
 
     #region Private Methods
 
-    private async Task<bool> UpdateResourceUsage()
+    private void InitResourceUsageStream()
     {
-        var containerStats = await PortainerApi.GetContainerStatsAsync(Endpoint.ID, ID).ConfigureAwait(false);
-        if (containerStats == null)
+        if (!_monitorResources) return;
+        _ = Task.Run(
+            async () =>
+            {
+                var logError = true;
+                while (!_disposeToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await foreach (var stats in PortainerApi.GetContainerStatsStreamAsync(Endpoint.ID, ID, _disposeToken).ConfigureAwait(false))
+                        {
+                            _oldContainerStats ??= stats;
+                            _latestContainerStats = stats;
+                            logError = true;
+                        }
+                    }
+                    catch (OperationCanceledException) { /* ignore */ }
+                    catch (Exception err)
+                    {
+                        _latestContainerStats = null;
+                        if(logError) Log.Error(err, $"Container: Error on receiving `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` resource stats stream");
+                        logError = false;
+                        await Task.Delay(1000, _disposeToken).ConfigureAwait(false);
+                    }
+                }
+            }, _disposeToken);
+    }
+
+    private Task<bool> UpdateResourceUsage()
+    {
+        if (!_monitorResources) return Task.FromResult(true);
+        var latestStats = _latestContainerStats;
+        if (latestStats == null)
         {
             _oldContainerStats = null;
-            return false;
+            return Task.FromResult(true);
         }
 
-        UpdateMemoryUsage(containerStats);
-        if (_oldContainerStats == null || _oldContainerStats.Read > containerStats.Read)
+        if (_oldContainerStats == null || _oldContainerStats.Read >= latestStats.Read)
         {
-            _oldContainerStats = containerStats;
-            return true;
+            _oldContainerStats = latestStats;
+            return Task.FromResult(true);
         }
 
-        var timeDiff = containerStats.Read - _oldContainerStats.Read;
-        UpdateCpuUsage(containerStats, _oldContainerStats);
-        UpdateNetworkUsage(containerStats, _oldContainerStats, timeDiff);
-
-        _oldContainerStats = containerStats;
-        return true;
+        Log.Debug($"Container: Update stats ({_oldContainerStats.Read.ToLocalTime():T}-{latestStats.Read.ToLocalTime():T}) of `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}`");
+        var timeDiff = latestStats.Read - _oldContainerStats.Read;
+        UpdateMemoryUsage(latestStats);
+        UpdateCpuUsage(latestStats, _oldContainerStats);
+        UpdateNetworkUsage(latestStats, _oldContainerStats, timeDiff);
+        _oldContainerStats = latestStats;
+        return Task.FromResult(true);
     }
 
     private void UpdateMemoryUsage(ContainerStats containerStats)
     {
-        if(_sensorMemoryConsumption == null || _sensorMemoryUsage == null) return;
+        if (_sensorMemoryConsumption == null || _sensorMemoryUsage == null) return;
         _sensorMemoryConsumption.Value = containerStats.MemoryStats.UsedMemoryBytes / (1024.0f * 1024.0f);
         _sensorMemoryUsage.Value = containerStats.MemoryStats.MaxMemoryBytes >= containerStats.MemoryStats.UsedMemoryBytes && containerStats.MemoryStats.UsedMemoryBytes > 0 ?
-                                        (float)(containerStats.MemoryStats.UsedMemoryBytes / (double)containerStats.MemoryStats.MaxMemoryBytes * 100.0) : 0.00f;
+                                        (float)(containerStats.MemoryStats.UsedMemoryBytes / (double)containerStats.MemoryStats.MaxMemoryBytes * 100.0) : _sensorMemoryUsage.Value;
     }
 
     private void UpdateCpuUsage(ContainerStats currentStats, ContainerStats oldStats)
     {
-        if(_sensorCpuUsage == null) return; 
+        if (_sensorCpuUsage == null) return;
         var diffSystemUsage = currentStats.CurrentCpuStats.SystemUsage - oldStats.CurrentCpuStats.SystemUsage;
         var diffContainerUsage = currentStats.CurrentCpuStats.CpuUsage.Total - oldStats.CurrentCpuStats.CpuUsage.Total;
         _sensorCpuUsage.Value = diffSystemUsage > 0 && diffContainerUsage > 0 ?
-                                    Math.Max(Math.Min((float)(diffContainerUsage / (double)diffSystemUsage * 100.0), 100.00f), 0.00f) : 0.00f;
+                                    Math.Max(Math.Min((float)(diffContainerUsage / (double)diffSystemUsage * 100.0), 100.00f), 0.00f) : _sensorCpuUsage.Value;
     }
 
     private void UpdateNetworkUsage(ContainerStats currentStats, ContainerStats oldStats, TimeSpan timeDiff)
     {
-        if(_sensorNetworkDownload == null || _sensorNetworkUpload == null || timeDiff < TimeSpan.Zero) return;
+        if (_sensorNetworkDownload == null || _sensorNetworkUpload == null || timeDiff < TimeSpan.Zero) return;
         var bytesReceived = currentStats.NetworkStats.Select(s => s.Value).Sum(v => (double)v.RxBytes);
         var oldBytesReceived = oldStats.NetworkStats.Select(s => s.Value).Sum(v => (double)v.RxBytes);
         var bytesSend = currentStats.NetworkStats.Select(s => s.Value).Sum(v => (double)v.TxBytes);
         var oldBytesSend = oldStats.NetworkStats.Select(s => s.Value).Sum(v => (double)v.TxBytes);
 
         _sensorNetworkDownload.Value = bytesReceived >= oldBytesReceived ?
-                                           (uint)((bytesReceived - oldBytesReceived) / timeDiff.TotalSeconds / 1024) : 0;
+                                           (uint)((bytesReceived - oldBytesReceived) / timeDiff.TotalSeconds / 1024) : _sensorNetworkDownload.Value;
         _sensorNetworkUpload.Value = bytesSend >= oldBytesSend ?
-                                         (uint)((bytesSend - oldBytesSend) / timeDiff.TotalSeconds / 1024) : 0;
+                                         (uint)((bytesSend - oldBytesSend) / timeDiff.TotalSeconds / 1024) : _sensorNetworkUpload.Value;
     }
 
     #endregion
