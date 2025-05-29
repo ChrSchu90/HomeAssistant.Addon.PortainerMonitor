@@ -1,4 +1,9 @@
 ﻿## Changelog 🚀
+### 1.1.1
+- Improved perfomance for resource monitoring
+- Update of icon for container CPU usage sensor
+- Update format of logs for better identification of host, endpoint and container
+
 ### 1.1.0
 - Add container resource monitoring for `CPU usage`, `RAM usage`, `Download` and `Upload`
 - Add options to enable/disable container `commands (start, stop...)`, `state monitoring`, `CPU monitoring`, `RAM monitoring` and `network monitoring`
