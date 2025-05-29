@@ -196,7 +196,7 @@ internal class PortainerHostModel : ModelBase
         foreach (var epKey in removedEndpoints)
         {
             if (!_endpoints.TryRemove(epKey, out var epModel)) continue;
-            Log.Information($"Host: Endpoint `{epModel.Name}` Host `{Name}` became unavailable and has been removed");
+            Log.Information($"Host: Endpoint `{Config.Id}.{epModel.Name}` became unavailable and has been removed");
             epModel.Dispose();
             removed = true;
         }
@@ -219,7 +219,7 @@ internal class PortainerHostModel : ModelBase
             }
 
             epModel = new PortainerEndpointModel(this, ep);
-            Log.Information($"Host: Endpoint `{epModel.Name}` on Host `{Name}` became available and has been added");
+            Log.Information($"Host: Endpoint `{Config.Id}.{epModel.Name}` became available and has been added");
             _endpoints.TryAdd(key, epModel);
             await epModel.UpdateAsync(force).ConfigureAwait(false);
         }

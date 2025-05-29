@@ -150,7 +150,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
         foreach (var epKey in removeContainers)
         {
             if (!_containers.TryRemove(epKey, out var ctModel)) continue;
-            Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` at Endpoint `{Name}` became unavailable and has been removed");
+            Log.Information($"Endpoint: Container `{Host.Config.Id}.{Name}.{ctModel.Name}` became unavailable and has been removed");
             ctModel.Dispose();
             removed = true;
         }
@@ -172,7 +172,7 @@ internal class PortainerEndpointModel : ModelBase<PortainerHostModel>
             }
 
             ctModel = new DockerContainerModel(this, ct);
-            Log.Information($"Endpoint: Container `{ctModel.Name}` on Host `{Host.Name}` Endpoint `{Name}` became available and has been added");
+            Log.Information($"Endpoint: Container `{Host.Config.Id}.{Name}.{ctModel.Name}` became available and has been added");
             _containers.TryAdd(ctModel.ID, ctModel);
             await ctModel.UpdateAsync(force).ConfigureAwait(false);
         }

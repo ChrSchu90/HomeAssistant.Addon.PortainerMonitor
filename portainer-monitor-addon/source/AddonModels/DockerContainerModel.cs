@@ -198,7 +198,7 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
     internal override Task<bool> OnUpdateStatesAsync(bool force)
     {
         if (ContainerState != PreviousInfo?.State)
-            Log.Debug($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` changed state to `{ContainerState}`");
+            Log.Debug($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` changed state to `{ContainerState}`");
 
         if (_sensorState != null)
             _sensorState.Value = ContainerState;
@@ -223,27 +223,27 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
             await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
             if (!e.CommandValue && ContainerState is ContainerState.Running)
             {
-                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending stop command...");
+                Log.Information($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` sending stop command...");
                 var result = await PortainerApi.StopContainerAsync(Endpoint.ID, ID).ConfigureAwait(false);
-                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending stop command {(result ? "successful" : "failed!")}");
+                Log.Information($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` send stop command {(result ? "successfully!" : "failed!")}");
                 SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Exited, ChangeStateCommandTimeout);
                 return;
             }
 
             if (e.CommandValue && ContainerState is ContainerState.Exited)
             {
-                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending start command...");
+                Log.Information($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` sending start command...");
                 var result = await PortainerApi.StartContainerAsync(Endpoint.ID, ID).ConfigureAwait(false);
-                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending start command {(result ? "successful" : "failed!")}");
+                Log.Information($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` send start command {(result ? "successfully!" : "failed!")}");
                 SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Running, ChangeStateCommandTimeout);
                 return;
             }
 
             if (e.CommandValue && ContainerState is ContainerState.Paused)
             {
-                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending unpause command...");
+                Log.Information($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` sending unpause command...");
                 var result = await PortainerApi.UnpauseContainerAsync(Endpoint.ID, ID).ConfigureAwait(false);
-                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending unpause command {(result ? "successful" : "failed!")}");
+                Log.Information($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` send unpause command {(result ? "successfully!" : "failed!")}");
                 SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Running, ChangeStateCommandTimeout);
             }
         }
@@ -269,9 +269,9 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
             await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
             if (ContainerState is ContainerState.Running)
             {
-                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending restart command...");
+                Log.Information($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` sending restart command...");
                 var result = await PortainerApi.RestartContainerAsync(Endpoint.ID, ID).ConfigureAwait(false);
-                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending restart command {(result ? "successful" : "failed!")}");
+                Log.Information($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` send restart command {(result ? "successfully!" : "failed!")}");
                 SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Running, ChangeStateCommandTimeout);
             }
         }
@@ -297,9 +297,9 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
             await _sendCommandLock.WaitAsync(_disposeToken).ConfigureAwait(false);
             if (ContainerState is ContainerState.Running)
             {
-                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending pause command...");
+                Log.Information($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` sending pause command...");
                 var result = await PortainerApi.PauseContainerAsync(Endpoint.ID, ID).ConfigureAwait(false);
-                Log.Information($"Container: `{Name}` of endpoint `{Endpoint.Name}` on host `{Endpoint.Host.Name}` sending pause command {(result ? "successful" : "failed!")}");
+                Log.Information($"Container: `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}` send pause command {(result ? "successfully!" : "failed!")}");
                 SpinWait.SpinUntil(() => !result || ContainerState is ContainerState.Paused, ChangeStateCommandTimeout);
             }
         }
@@ -395,17 +395,18 @@ internal class DockerContainerModel : ModelBase<PortainerEndpointModel>
             return Task.FromResult(true);
         }
 
-        if (_oldContainerStats == null || _oldContainerStats.Read >= latestStats.Read)
+        var oldStats = _oldContainerStats;
+        if (oldStats == null || oldStats.Read >= latestStats.Read)
         {
             _oldContainerStats = latestStats;
             return Task.FromResult(true);
         }
 
-        Log.Debug($"Container: Update stats ({_oldContainerStats.Read.ToLocalTime():T}-{latestStats.Read.ToLocalTime():T}) of `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}`");
-        var timeDiff = latestStats.Read - _oldContainerStats.Read;
+        Log.Debug($"Container: Update stats ({oldStats.Read.ToLocalTime():T}-{latestStats.Read.ToLocalTime():T}) of `{Endpoint.Host.Config.Id}.{Endpoint.Name}.{Name}`");
+        var timeDiff = latestStats.Read - oldStats.Read;
         UpdateMemoryUsage(latestStats);
-        UpdateCpuUsage(latestStats, _oldContainerStats);
-        UpdateNetworkUsage(latestStats, _oldContainerStats, timeDiff);
+        UpdateCpuUsage(latestStats, oldStats);
+        UpdateNetworkUsage(latestStats, oldStats, timeDiff);
         _oldContainerStats = latestStats;
         return Task.FromResult(true);
     }
