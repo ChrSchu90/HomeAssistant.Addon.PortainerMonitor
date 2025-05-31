@@ -102,11 +102,6 @@ internal class PortainerHostModel : ModelBase
     internal IPortainerConfig Config { get; }
 
     /// <summary>
-    /// Gets the display name of the Host.
-    /// </summary>
-    internal string Name => PortainerApi.DisplayName;
-
-    /// <summary>
     /// Gets the Portainer version.
     /// </summary>
     internal Version? Version

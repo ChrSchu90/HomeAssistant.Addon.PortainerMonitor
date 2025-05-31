@@ -50,7 +50,7 @@ internal class EndpointApiWrapper : IEndpointApi
     public string ID => _portainerApi?.ID ?? _agentApi!.ID;
     
     /// <inheritdoc />
-    public string DisplayName => _portainerApi?.ID ?? _agentApi!.ID;
+    public string DisplayName => _portainerApi?.DisplayName ?? _agentApi!.DisplayName;
     
     #endregion
 

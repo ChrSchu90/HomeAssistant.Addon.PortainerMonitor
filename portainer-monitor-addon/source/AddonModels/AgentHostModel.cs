@@ -1,6 +1,5 @@
 ﻿namespace HomeAssistant.Addon.PortainerMonitor.AddonModels;
 
-using System;
 using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
@@ -18,8 +17,6 @@ internal class AgentHostModel : ModelBase
     #endregion
 
     #region Private Fields
-
-    private bool _deviceOutdated;
 
     #endregion
 
@@ -60,51 +57,14 @@ internal class AgentHostModel : ModelBase
     /// </summary>
     internal AgentEndpointModel EndpointModel { get; }
 
-    /// <summary>
-    /// Gets the Portainer version.
-    /// </summary>
-    internal Version? Version
-    {
-        get => Device.Version;
-        private set
-        {
-            if (Device.Version?.Equals(value) == true) return;
-            Device.Version = value;
-            _deviceOutdated = true;
-        }
-    }
-
-    /// <summary>
-    /// Gets the Portainer edition.
-    /// </summary>
-    internal string Edition
-    {
-        get => Device.Model;
-        private set
-        {
-            if (Device.Model == value) return;
-            Device.Model = value;
-            _deviceOutdated = true;
-        }
-    }
-
     #endregion
 
     #region Public Methods
 
     /// <inheritdoc />
-    internal override async Task<bool> OnUpdateStatesAsync(bool force)
+    internal override Task<bool> OnUpdateStatesAsync(bool force)
     {
-        force = force || _deviceOutdated;
-
-        var agentVersion = await AgentApi.GetAgentVersionAsync().ConfigureAwait(false);
-        if(agentVersion == null) return false;
-
-        Version = agentVersion;
-        Edition = "Portainer Agent";
-        _ = await EndpointModel.UpdateAsync(force).ConfigureAwait(false);
-        _deviceOutdated = false;
-        return true;
+        return EndpointModel.UpdateAsync(force);
     }
 
     /// <inheritdoc />

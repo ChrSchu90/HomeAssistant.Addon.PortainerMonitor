@@ -43,7 +43,7 @@ internal class PortainerEndpointModel : EndpointBase<PortainerHostModel>
     #region Properties
 
     /// <summary>
-    /// Gets the host of the endpoint.
+    /// Gets the portainer host of the endpoint.
     /// </summary>
     internal new PortainerHostModel Host => Parent;
 
@@ -98,7 +98,7 @@ internal class AgentEndpointModel : EndpointBase<AgentHostModel>
     #region Properties
 
     /// <summary>
-    /// Gets the host of the endpoint.
+    /// Gets the agent host of the endpoint.
     /// </summary>
     internal new AgentHostModel Host => Parent;
 
@@ -108,6 +108,18 @@ internal class AgentEndpointModel : EndpointBase<AgentHostModel>
     #endregion
 
     #region Public Methods
+
+    /// <inheritdoc />
+    internal override async Task<bool> OnUpdateStatesAsync(bool force)
+    {
+        var agentVersion = await Host.AgentApi.GetAgentVersionAsync().ConfigureAwait(false);
+        if(agentVersion == null) return false;
+
+        Device.Version = agentVersion;
+        Device.Model = "Portainer Agent";
+
+        return await base.OnUpdateStatesAsync(force).ConfigureAwait(false);
+    }
 
     #endregion
 
