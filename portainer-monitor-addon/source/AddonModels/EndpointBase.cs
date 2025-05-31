@@ -11,124 +11,6 @@ using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Portainer;
 
 /// <summary>
-/// Endpoint model that represents an environment inside the Portainer instance
-/// </summary>
-internal class PortainerEndpointModel : EndpointBase<PortainerHostModel>
-{
-    #region Private Static Fields
-
-    #endregion
-
-    #region Private Fields
-
-    #endregion
-
-    #region Constructors
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PortainerEndpointModel"/> class.
-    /// </summary>
-    internal PortainerEndpointModel(PortainerHostModel host, PortainerEndpoint endpoint, IEndpointApi endpointApi)
-        : base(host, endpoint.Name, endpoint.Name, endpointApi)
-    {
-        ID = endpoint.Id;
-    }
-
-    #endregion
-
-    #region Events
-
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    /// Gets the portainer host of the endpoint.
-    /// </summary>
-    internal new PortainerHostModel Host => Parent;
-
-    /// <inheritdoc />
-    internal override IConnectionConfig Config => Host.Config;
-
-    /// <summary>
-    /// Gets the endpoint ID.
-    /// </summary>
-    internal int ID { get; }
-
-    #endregion
-
-    #region Public Methods
-
-    #endregion
-
-    #region Private Methods
-
-    #endregion
-}
-
-/// <summary>
-/// Endpoint model that represents an environment of a Portainer Agent
-/// </summary>
-internal class AgentEndpointModel : EndpointBase<AgentHostModel>
-{
-    #region Private Static Fields
-
-    #endregion
-
-    #region Private Fields
-
-    #endregion
-
-    #region Constructors
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PortainerEndpointModel"/> class.
-    /// </summary>
-    internal AgentEndpointModel(AgentHostModel host, IEndpointApi endpointApi)
-        : base(host, endpointApi.DisplayName, endpointApi.ID, endpointApi)
-    {
-    }
-
-    #endregion
-
-    #region Events
-
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    /// Gets the agent host of the endpoint.
-    /// </summary>
-    internal new AgentHostModel Host => Parent;
-
-    /// <inheritdoc />
-    internal override IConnectionConfig Config => Host.Config;
-
-    #endregion
-
-    #region Public Methods
-
-    /// <inheritdoc />
-    internal override async Task<bool> OnUpdateStatesAsync(bool force)
-    {
-        var agentVersion = await Host.AgentApi.GetAgentVersionAsync().ConfigureAwait(false);
-        if(agentVersion == null) return false;
-
-        Device.Version = agentVersion;
-        Device.Model = "Portainer Agent";
-
-        return await base.OnUpdateStatesAsync(force).ConfigureAwait(false);
-    }
-
-    #endregion
-
-    #region Private Methods
-
-    #endregion
-}
-
-/// <summary>
 /// Endpoint model base that represents an environment
 /// </summary>
 internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
@@ -265,7 +147,7 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
         foreach (var epKey in removeContainers)
         {
             if (!_containers.TryRemove(epKey, out var ctModel)) continue;
-            Log.Information($"Endpoint: Container `{Parent.NameID}.{Name}.{ctModel.Name}` became unavailable and has been removed");
+            Log.Information($"Endpoint: Container `{Config.Id}.{Name}.{ctModel.Name}` became unavailable and has been removed");
             ctModel.Dispose();
             removed = true;
         }
@@ -287,7 +169,7 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
             }
 
             ctModel = new DockerContainerModel<T>(this, ct);
-            Log.Information($"Endpoint: Container `{Parent.NameID}.{Name}.{ctModel.Name}` became available and has been added");
+            Log.Information($"Endpoint: Container `{Config.Id}.{Name}.{ctModel.Name}` became available and has been added");
             _containers.TryAdd(ctModel.ID, ctModel);
             await ctModel.UpdateAsync(force).ConfigureAwait(false);
         }

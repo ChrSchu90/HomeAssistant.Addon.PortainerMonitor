@@ -104,7 +104,6 @@ internal class AgentApi : IAgentApi, IDisposable
         catch (OperationCanceledException) { return default; }
         catch (Exception err)
         {
-            var a = err.GetType();
             if (!_ct.IsCancellationRequested) Log.Error(err, $"Agent API `{_config.DisplayName}` error `{nameof(GetAgentVersionAsync)}` `{req.Resource}`");
             return default;
         }

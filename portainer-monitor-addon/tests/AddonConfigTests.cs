@@ -33,9 +33,12 @@ public sealed class AddonConfigTests
         cfg.UpdateInterval = oldUpdateInterval;
 
         var oldPortainerConfigs = cfg.PortainerConfigs.ToArray();
+        var oldAgentConfigs = cfg.AgentConfigs.ToArray();
         cfg.PortainerConfigs.Clear();
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Empty portainer configs accepted");
+        cfg.AgentConfigs.Clear();
+        Assert.ThrowsException<ConfigException>(cfg.Validate, "Empty portainer and agent configs accepted");
         cfg.PortainerConfigs.AddRange(oldPortainerConfigs);
+        cfg.AgentConfigs.AddRange(oldAgentConfigs);
     }
 
     [TestMethod]
@@ -87,6 +90,38 @@ public sealed class AddonConfigTests
         cfg.Token = oldToken;
     }
 
+    [TestMethod]
+    public void AgentValidation()
+    {
+        var cfg = AddonConfig.FromText(GetTestJson()).AgentConfigs.First();
+        cfg.Validate(); // No Exception
+
+        var oldId = cfg.Id;
+        cfg.Id = string.Empty;
+        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer ID accepted");
+        cfg.Id = oldId;
+
+        var oldDisplayName = cfg.DisplayName;
+        cfg.DisplayName = string.Empty;
+        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer display name accepted");
+        cfg.DisplayName = oldDisplayName;
+
+        var oldHost = cfg.Host;
+        cfg.Host = string.Empty;
+        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer host accepted");
+        cfg.Host = oldHost;
+
+        var oldPort = cfg.Port;
+        cfg.Port = 0;
+        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer port accepted");
+        cfg.Port = oldPort;
+
+        var oldToken = cfg.Secret;
+        cfg.Secret = string.Empty;
+        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer token accepted");
+        cfg.Secret = oldToken;
+    }
+
     private static string GetTestYaml()
     {
         return """
@@ -113,6 +148,21 @@ public sealed class AddonConfigTests
                    token: 'ptr_AsfasdASddasdasdoaisndaosndonASDN'
                    tls_enabled: true
                    tls_validate: false
+               agent_configs:
+               - id: agent1
+                 display_name: 'Agent 1'
+                 host: 192.168.10.124
+                 port: 9443
+                 secret: 'MyAgentSecret1'
+                 tls_enabled: true
+                 tls_validate: false
+               - id: agent2
+                 display_name: 'Agent 2'
+                 host: 192.168.10.125
+                 port: 9443
+                 secret: 'MyAgentSecret2'
+                 tls_enabled: true
+                 tls_validate: false
                """;
     }
 
@@ -147,7 +197,27 @@ public sealed class AddonConfigTests
                      "tls_enabled": true,
                      "tls_validate": false
                    },
-                 ]
+                 ],
+                 "agent_configs": [
+                 {
+                   "id": "agent1",
+                   "display_name": "Agent 1",
+                   "host": "192.168.10.124",
+                   "port": 9443,
+                   "secret": "MyAgentSecret1",
+                   "tls_enabled": true,
+                   "tls_validate": false
+                 },
+                 {
+                   "id": "agent2",
+                   "display_name": "Agent 2",
+                   "host": "192.168.10.125",
+                   "port": 9443,
+                   "secret": "MyAgentSecret2",
+                   "tls_enabled": true,
+                   "tls_validate": false
+                 },
+               ]
                }
                """;
     }
