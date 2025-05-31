@@ -1,17 +1,18 @@
 # ![image](https://portainer-io-assets.sfo2.cdn.digitaloceanspaces.com/logos/portainer.png) Portainer Monitor Addon for Home Assistant
 
 ## Features ✔️
-- Support for *Supervised* and *Standalone* Home Assistant installations
+- Support for **Supervised** and **Standalone** Home Assistant installations
+- Supports monitoring of ***Portainer instances*** with multiple environments and direct connection to ***Portainer Agents*** 
 - Update Check for Portainer
 - Sensor for actual Portainer version
-- Sensor for actual Docker version per Endpoint
-- Sensors with amount of `running`, `stopped`, `paused` and `total` containers per Endpoint and Portainer instance 
+- Sensor for actual Docker version per *Portainer Environment* and *Portainer Agent*
+- Sensors with amount of `running`, `stopped`, `paused` and `total` containers per Environment, Portainer instance and Agent
 - Sensors with state of each container (`Created`, `Restarting` ,`Running` ,`Removing` ,`Paused` ,`Exited` ,`Dead`)
 - Sensors for container resource monitoring (`CPU usage`, `RAM usage`, `Download` and `Upload`)
 - Toggle switch to `start` or `stop` each container
 - Buttons to `pause` or `restart` each container
 - Options to enable/disable container `commands (start, stop ...)`, `state monitoring` and `resource monitoring for CPU, RAM and network`
-- Entity availability per Portainer host and endpoint
+- Entity availability per Portainer instance, Environment and Agent
 
 <img src="https://github.com/user-attachments/assets/71f62f6e-211d-49c4-a990-738a668d59e1" width="750" />
 <img src="https://github.com/user-attachments/assets/444e8113-b977-493f-9725-a211bb95fbd5" width="279" />
@@ -31,10 +32,10 @@
 4. Refresh Page ***(F5)***
 5. The Store should now show the addon
 6. Click on the addon ***INSTALL*** button
-7. Add the **Portainer Configurations** inside the options, nothing more is to do *(MQTT details are optional and will be taken via Home Assistant Supervisor API)*. You can also use secrets e.g. ` token: "!secret token_portainer_server1"`
+7. Add the **Portainer Configurations** that should be monitored inside the options. You can also use secrets e.g. `token: "!secret token_portainer_server1"`
    >``` yaml
-   >- id: server1
-   >   display_name: 'Server 1'
+   >- id: synology
+   >   display_name: 'Synology'
    >   host: 192.168.10.124
    >   port: 9443
    >   token: 'ptr_...'
@@ -48,8 +49,29 @@
    >```
    ><img src="https://github.com/user-attachments/assets/86bfb9f0-a938-4d11-852a-117b00a5e0e3" width="900" />
 
-8. Start the addon and check for errors: 
+8. Add the **Agent Configurations** that should be monitored inside the options. You can also use secrets e.g. `secret: "!secret secret_agent_server1"`
+   >``` yaml
+   >- id: synology
+   >   display_name: 'Synology'
+   >   host: 192.168.10.125
+   >   port: 9443
+   >   secret: 'MyAgentSecret'
+   >   tls_enabled: true
+   >   tls_validate: false
+   >   container_commands: true
+   >   container_state_monitoring: true
+   >   container_cpu_monitoring: true
+   >   container_ram_monitoring: true
+   >   container_network_monitoring: true
+   >```
+   ><img src="https://github.com/user-attachments/assets/86bfb9f0-a938-4d11-852a-117b00a5e0e3" width="900" />
+
+9. Start the addon and check for errors: 
    ><img src="https://github.com/user-attachments/assets/5a893b90-f5a7-4e0f-a5ed-a26740ddd15d" width="900" />
+
+> [!TIP]
+> If HA will shown an error on configuration saving after you have cleared 
+> the *Portainer* or *Agent* configuration field enter `[]` as value.
 
 ### Standalone (not recommended⚠️)
 When using Home Assistant as self managed docker container you can use the addon container separately. __This is for advanced users only.__
@@ -73,8 +95,8 @@ services:
           "mqtt_tls_validate": false,
           "portainer_configs": [
             {
-              "id": "server1",
-              "display_name": "Server 1",
+              "id": "portainer1",
+              "display_name": "Portainer 1",
               "host": "192.168.10.124",
               "port": 9443,
               "token": "ptr_...",
@@ -86,10 +108,25 @@ services:
               "container_ram_monitoring": true,
               "container_network_monitoring": true
             }
+          ],
+          "agent_configs": [
+            {
+              "id": "agent1",
+              "display_name": "Agent 1",
+              "host": "192.168.10.125",
+              "port": 9001,
+              "secret": "MyAgentSecret",
+              "tls_enabled": true,
+              "tls_validate": false,
+              "container_commands": true,
+              "container_state_monitoring": true,
+              "container_cpu_monitoring": true,
+              "container_ram_monitoring": true,
+              "container_network_monitoring": true
+            }
           ]
         }
 ```
-
 
 ### Options 🕹
 #### General
@@ -118,6 +155,44 @@ services:
 | token                        | &#10003;   |               | [Portainer Access Token](https://docs.portainer.io/api/access#creating-an-access-token) |                                                           |
 | tls_enabled                  | &#10007;   | `true`        | Use TLS (`https`) for Portainer API connection                                          | `true` / `false`                                          |
 | tls_validate                 | &#10007;   | `false`       | Validate Portainer API connection TLS certificate                                       | `true` / `false`                                          |
+| container_commands           | &#10007;   | `true`        | Create buttons/switches to start, stop, pause and restart cotnainers                    | `true` / `false`                                          |
+| container_state_monitoring   | &#10007;   | `true`        | Create state sensor for containers                                                      | `true` / `false`                                          |
+| container_cpu_monitoring     | &#10007;   | `true`        | Create CPU usage sensor for containers                                                  | `true` / `false`                                          |
+| container_ram_monitoring     | &#10007;   | `true`        | Create RAM usage sensors for containers                                                 | `true` / `false`                                          |
+| container_network_monitoring | &#10007;   | `true`        | Create download/upload sensors for containers                                           | `true` / `false`                                          |
+
+#### Agent Config
+> [!NOTE]
+> For security reasons you ***MUST*** define a `AGENT_SECRET` for the *Portainer Agent*
+>
+> Make sure to check the [documentation](https://docs.portainer.io/admin/environments/add/docker/agent) before you deploy the container
+>``` yaml
+>version: "3.3"                                                                                                                                   
+>services:
+>  portainer-agent:
+>    image: portainer/agent:lts
+>    network_mode: bridge
+>    restart: always
+>    privileged: true
+>    ports:
+>      - 9001:9001
+>    volumes:
+>      - /var/run/docker.sock:/var/run/docker.sock
+>      #- /var/lib/docker/volumes:/var/lib/docker/volumes
+>    environment:
+>      TZ: Europe/Berlin
+>      AGENT_SECRET: 'MyAgentSecret'
+>```
+
+| Name                         | Required   | Default       | Description                                                                             | Limits                                                    |
+| ---------------------------- | ---------- | ------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| id                           | &#10003;   |               | Used to create the mqtt IDs                                                             | only `a-z`, `0-9`  and `_` allowed                        |
+| display_name                 | &#10003;   |               | Displayed name inside HA                                                                |                                                           |
+| host                         | &#10003;   |               | Hostname or IP of the Portainer Agent                                                   |                                                           |
+| port                         | &#10007;   | `9001`        | Port of the Portainer Agent API                                                         | `1` - `65535`                                             |
+| secret                       | &#10003;   |               | [Portainer Agent Secret](https://docs.portainer.io/admin/environments/add/docker/agent) |                                                           |
+| tls_enabled                  | &#10007;   | `true`        | Use TLS (`https`) for Portainer Agent connection                                        | `true` / `false`                                          |
+| tls_validate                 | &#10007;   | `false`       | Validate Portainer Agent TLS certificate                                                | `true` / `false`                                          |
 | container_commands           | &#10007;   | `true`        | Create buttons/switches to start, stop, pause and restart cotnainers                    | `true` / `false`                                          |
 | container_state_monitoring   | &#10007;   | `true`        | Create state sensor for containers                                                      | `true` / `false`                                          |
 | container_cpu_monitoring     | &#10007;   | `true`        | Create CPU usage sensor for containers                                                  | `true` / `false`                                          |
