@@ -45,7 +45,7 @@ internal class PortainerHostModel : ModelBase
     /// <param name="addonPrefix">The addon entity ID prefix.</param>
     /// <param name="addonManufacturer">The device manufacturer.</param>
     internal PortainerHostModel(IPortainerConfig config, IPortainerApi portainerApi, IMqttClient mqttClient, string addonPrefix, string addonManufacturer)
-        : base(mqttClient, new HaDevice(addonPrefix, portainerApi.ID, portainerApi.DisplayName, addonManufacturer), HaEntityBase.BuildID(addonPrefix, portainerApi.ID), null)
+        : base(mqttClient, new HaDevice(addonPrefix, portainerApi.ID, portainerApi.DisplayName, addonManufacturer), portainerApi.ID, addonPrefix)
     {
         Config = config;
         PortainerApi = portainerApi;

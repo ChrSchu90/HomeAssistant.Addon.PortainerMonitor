@@ -141,7 +141,7 @@ internal class DockerContainerModel<T> : ModelBase<EndpointBase<T>> where T : Mo
             _sensorNetworkUpload.SuggestedDisplayPrecision = 0;
         }
 
-        InitResourceUsageStream();
+        InitAsyncResourceUsageCollection();
     }
 
     #endregion
@@ -361,7 +361,7 @@ internal class DockerContainerModel<T> : ModelBase<EndpointBase<T>> where T : Mo
 
     #region Private Methods
 
-    private void InitResourceUsageStream()
+    private void InitAsyncResourceUsageCollection()
     {
         if (!_monitorResources) return;
         _ = Task.Run(
@@ -372,8 +372,12 @@ internal class DockerContainerModel<T> : ModelBase<EndpointBase<T>> where T : Mo
                 {
                     try
                     {
-                        await foreach (var stats in EndpointApi.GetContainerStatsStreamAsync(ID, _disposeToken).ConfigureAwait(false))
+                        // It looks like polling of resource usage is more consistent for large environments,
+                        // sometimes streaming data will not be received for up to 15s for whatever reason
+                        var stats = await EndpointApi.GetContainerStatsAsync(ID).ConfigureAwait(false);
+                        if (stats != null)
                         {
+                            //Log.Debug($"Container: Received stats {stats.Read.ToLocalTime():T} of `{Endpoint.Config.Id}.{Endpoint.Name}.{Name}`");
                             _oldContainerStats ??= stats;
                             _latestContainerStats = stats;
                             logError = true;
@@ -383,10 +387,11 @@ internal class DockerContainerModel<T> : ModelBase<EndpointBase<T>> where T : Mo
                     catch (Exception err)
                     {
                         _latestContainerStats = null;
-                        if(logError) Log.Error(err, $"Container: Error on receiving `{Endpoint.Config.Id}.{Endpoint.Name}.{Name}` resource stats stream");
+                        if(logError) Log.Error(err, $"Container: Error on receiving `{Endpoint.Config.Id}.{Endpoint.Name}.{Name}` resource stats");
                         logError = false;
-                        await Task.Delay(1000, _disposeToken).ConfigureAwait(false);
                     }
+
+                    await Task.Delay(1000, _disposeToken).ConfigureAwait(false);
                 }
             }, _disposeToken);
     }
