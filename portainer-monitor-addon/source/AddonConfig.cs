@@ -259,7 +259,25 @@ public class AgentConfig : IAgentConfig
     public string Secret { get; set; } = null!;
 
     /// <inheritdoc />
-    public bool TlsValidate { get; set; }
+    public bool TlsEnabled { get; set; } = true;
+
+    /// <inheritdoc />
+    public bool TlsValidate { get; set; } = false;
+
+    /// <inheritdoc />
+    public bool ContainerCommands { get; set; } = true;
+
+    /// <inheritdoc />
+    public bool ContainerStateMonitoring { get; set; } = true;
+
+    /// <inheritdoc />
+    public bool ContainerCpuMonitoring { get; set; } = true;
+
+    /// <inheritdoc />
+    public bool ContainerRamMonitoring { get; set; } = true;
+
+    /// <inheritdoc />
+    public bool ContainerNetworkMonitoring { get; set; } = true;
 
     #endregion
 

@@ -30,18 +30,25 @@ internal interface IPortainerApi
     #endregion
 
     #region Methods
-
+    
     /// <summary>
-    /// Gets the system version information.
+    /// Gets the portainer system version information.
     /// </summary>
     /// <returns>The version info or <c>null</c></returns>
-    Task<SystemVersionResponse?> GetVersionAsync();
+    Task<SystemVersionResponse?> GetPortainerVersionInfoAsync();
 
     /// <summary>
     /// Gets the portainer endpoints.
     /// </summary>
     /// <returns>The Portainer endpoints or <c>null</c></returns>
     Task<PortainerEndpoint[]?> GetEndpointsAsync();
+
+    /// <summary>
+    /// Gets the docker version information.
+    /// </summary>
+    /// <param name="endpointId">The endpoint identifier.</param>
+    /// <returns>The docker version information</returns>
+    Task<DockerVersionInfo?> GetDockerVersionInfoAsync(int endpointId);
 
     /// <summary>
     /// Gets all containers from endpoint.

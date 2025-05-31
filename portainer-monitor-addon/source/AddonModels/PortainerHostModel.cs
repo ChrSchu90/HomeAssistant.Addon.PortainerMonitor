@@ -12,7 +12,7 @@ using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
 using Serilog;
 
 /// <summary>
-/// Root model Portainer Host
+/// Root model of Portainer connection
 /// </summary>
 /// <seealso cref="ModelBase" />
 internal class PortainerHostModel : ModelBase
@@ -45,9 +45,10 @@ internal class PortainerHostModel : ModelBase
     /// <param name="addonPrefix">The addon entity ID prefix.</param>
     /// <param name="addonManufacturer">The device manufacturer.</param>
     internal PortainerHostModel(IPortainerConfig config, IPortainerApi portainerApi, IMqttClient mqttClient, string addonPrefix, string addonManufacturer)
-        : base(portainerApi, mqttClient, new HaDevice(addonPrefix, portainerApi.ID, portainerApi.DisplayName, addonManufacturer), HaEntityBase.BuildID(addonPrefix, portainerApi.ID), null)
+        : base(mqttClient, new HaDevice(addonPrefix, portainerApi.ID, portainerApi.DisplayName, addonManufacturer), HaEntityBase.BuildID(addonPrefix, portainerApi.ID), null)
     {
         Config = config;
+        PortainerApi = portainerApi;
         Availability = new() { Topic = string.Format(AvailabilityTopic, MqttIdPrefix) };
 
         _updateItem = CreateUpdateEntity("update", "Update");
@@ -91,6 +92,11 @@ internal class PortainerHostModel : ModelBase
     #region Properties
 
     /// <summary>
+    /// Gets the portainer API.
+    /// </summary>
+    internal IPortainerApi PortainerApi { get; }
+
+    /// <summary>
     /// Gets the configuration.
     /// </summary>
     internal IPortainerConfig Config { get; }
@@ -103,14 +109,15 @@ internal class PortainerHostModel : ModelBase
     /// <summary>
     /// Gets the Portainer version.
     /// </summary>
-    internal Version Version
+    internal Version? Version
     {
         get => Device.Version;
         private set
         {
-            if (Device.Version.Equals(value)) return;
+            if (Device.Version?.Equals(value) == true) return;
             Device.Version = value;
-            _sensorVersion.Value = value.ToString(3);
+            if(value != null)
+                _sensorVersion.Value = value.ToString(3);
             _deviceOutdated = true;
         }
     }
@@ -136,10 +143,9 @@ internal class PortainerHostModel : ModelBase
     /// <inheritdoc />
     internal override async Task<bool> OnUpdateStatesAsync(bool force)
     {
-        // Do not use the apiVersion! We get this info inside the UpdateVersionInfo
         force = force || _deviceOutdated;
 
-        var versionInfo = await PortainerApi.GetVersionAsync().ConfigureAwait(false);
+        var versionInfo = await PortainerApi.GetPortainerVersionInfoAsync().ConfigureAwait(false);
         if (versionInfo == null) return false;
 
         var successful = await UpdateVersionInfo(versionInfo).ConfigureAwait(false);
@@ -206,7 +212,6 @@ internal class PortainerHostModel : ModelBase
             var key = $"{ep.Name} ({ep.Id})";
             if (_endpoints.TryGetValue(key, out var epModel))
             {
-                epModel.LatestInfo = ep;
                 await epModel.UpdateAsync(force).ConfigureAwait(false);
                 continue;
             }
@@ -218,7 +223,7 @@ internal class PortainerHostModel : ModelBase
                 await Task.Delay(1000).ConfigureAwait(false);
             }
 
-            epModel = new PortainerEndpointModel(this, ep);
+            epModel = new PortainerEndpointModel(this, ep, new EndpointApiWrapper(PortainerApi, ep.Id));
             Log.Information($"Host: Endpoint `{Config.Id}.{epModel.Name}` became available and has been added");
             _endpoints.TryAdd(key, epModel);
             await epModel.UpdateAsync(force).ConfigureAwait(false);

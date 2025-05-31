@@ -69,8 +69,8 @@ internal class HaDevice
     /// <summary>
     /// Gets or sets the device software version.
     /// </summary>
-    [JsonPropertyName("sw_version")]
-    public Version Version { get; set; }
+    [JsonPropertyName("sw_version"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Version? Version { get; set; }
 
     /// <summary>
     /// Gets or sets the device identifiers.

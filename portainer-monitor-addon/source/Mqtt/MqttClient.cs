@@ -76,7 +76,7 @@ internal class MqttClient : IMqttClient, IDisposable
         _mqttOptions = new ManagedMqttClientOptionsBuilder()
             .WithAutoReconnectDelay(TimeSpan.FromSeconds(10))
             .WithClientOptions(mqttClientOptions.Build())
-            //.WithStorage() // ToDo is it required to store retain topics for delete?!?
+            //.WithStorage() // Is it required to store retain topics for delete?!?
             .Build();
     }
 

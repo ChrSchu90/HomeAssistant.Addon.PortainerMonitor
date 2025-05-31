@@ -7,7 +7,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
-using HomeAssistant.Addon.PortainerMonitor.Portainer;
 using Serilog;
 
 /// <summary>
@@ -36,14 +35,12 @@ internal abstract class ModelBase : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="ModelBase" /> class.
     /// </summary>
-    /// <param name="portainerApi">The portainer API.</param>
     /// <param name="mqttClient">The MQTT client.</param>
     /// <param name="device">The root device.</param>
     /// <param name="nameID">The MQTT identifier of this model without prefix.</param>
     /// <param name="parentMqttIdPrefix">The parent MQTT identifier prefix.</param>
-    protected ModelBase(IPortainerApi portainerApi, IMqttClient mqttClient, HaDevice device, string nameID, string? parentMqttIdPrefix)
+    protected ModelBase(IMqttClient mqttClient, HaDevice device, string nameID, string? parentMqttIdPrefix)
     {
-        PortainerApi = portainerApi;
         MqttClient = mqttClient;
         Device = device;
         NameID = nameID;
@@ -66,11 +63,6 @@ internal abstract class ModelBase : IDisposable
     /// Gets the Home Assistant device.
     /// </summary>
     internal HaDevice Device { get; }
-
-    /// <summary>
-    /// Gets the portainer API.
-    /// </summary>
-    internal IPortainerApi PortainerApi { get; }
 
     /// <summary>
     /// Gets the MQTT client.
@@ -332,7 +324,7 @@ internal abstract class ModelBase<T> : ModelBase where T : ModelBase
     /// <param name="parent">The parent.</param>
     /// <param name="nameID">The MQTT identifier of this model without prefix.</param>
     protected ModelBase(T parent, string nameID)
-        : base(parent.PortainerApi, parent.MqttClient, parent.Device, nameID, parent.MqttIdPrefix)
+        : base(parent.MqttClient, parent.Device, nameID, parent.MqttIdPrefix)
     {
         Parent = parent;
     }

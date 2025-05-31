@@ -1,9 +1,9 @@
 ﻿namespace HomeAssistant.Addon.PortainerMonitor.Portainer;
 
 /// <summary>
-/// Portainer Configuration
+/// Shared Portainer connection config for <see cref="IPortainerConfig"/> and <see cref="IAgentConfig"/>
 /// </summary>
-public interface IPortainerConfig
+public interface IConnectionConfig
 {
     #region Events
 
@@ -30,11 +30,6 @@ public interface IPortainerConfig
     /// Gets the port.
     /// </summary>
     ushort Port { get; }
-
-    /// <summary>
-    /// Gets the portainer API token.
-    /// </summary>
-    string Token { get; }
 
     /// <summary>
     /// Gets a value indicating whether TLS is enabled.
@@ -70,6 +65,52 @@ public interface IPortainerConfig
     /// Gets a value indicating whether container network monitoring should be available.
     /// </summary>
     bool ContainerNetworkMonitoring { get; }
+
+    #endregion
+
+    #region Methods
+
+    #endregion
+}
+
+/// <summary>
+/// Portainer connection configuration
+/// </summary>
+public interface IPortainerConfig : IConnectionConfig
+{
+    #region Events
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Gets the portainer API token.
+    /// </summary>
+    string Token { get; }
+
+    #endregion
+
+    #region Methods
+
+    #endregion
+}
+
+/// <summary>
+/// Portainer Agent connection configuration
+/// </summary>
+public interface IAgentConfig : IConnectionConfig
+{
+    #region Events
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Gets the agent secret.
+    /// </summary>
+    string? Secret { get; }
 
     #endregion
 

@@ -51,7 +51,7 @@ internal class AgentApi : IAgentApi, IDisposable
         _config = config;
         _ct = ct;
 
-        _client = new RestClient(new RestClientOptions($"https://{_config.Host}:{_config.Port}")
+        _client = new RestClient(new RestClientOptions($"{(_config.TlsEnabled ? "https" : "http")}://{_config.Host}:{_config.Port}")
         {
             RemoteCertificateValidationCallback = RemoteCertificateValidationCallback,
             Timeout = TimeSpan.FromSeconds(15)
@@ -90,6 +90,30 @@ internal class AgentApi : IAgentApi, IDisposable
     public void Dispose()
     {
         _client.Dispose();
+    }
+
+    public async Task<Version?> GetAgentVersionAsync()
+    {
+        var req = new RestRequest("ping");
+        try
+        {
+            var res = await _client.GetAsync(req, _ct).ConfigureAwait(false);
+            res.ThrowIfError();
+            return Version.TryParse(res.GetHeaderValue("Portainer-Agent"), out var agentVersion) ? agentVersion : new Version(0, 0, 0);
+        }
+        catch (OperationCanceledException) { return default; }
+        catch (Exception err)
+        {
+            var a = err.GetType();
+            if (!_ct.IsCancellationRequested) Log.Error(err, $"Agent API `{_config.DisplayName}` error `{nameof(GetAgentVersionAsync)}` `{req.Resource}`");
+            return default;
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<DockerVersionInfo?> GetDockerVersionInfoAsync()
+    {
+        return TryGetAsync<DockerVersionInfo>(new RestRequest("version"));
     }
 
     /// <inheritdoc />
@@ -148,24 +172,6 @@ internal class AgentApi : IAgentApi, IDisposable
 
     #region Private Methods
 
-    private async Task<bool> TryPingAgent()
-    {
-        var req = new RestRequest("ping");
-        try
-        {
-            var res = await _client.GetAsync(req, _ct).ConfigureAwait(false);
-            res.ThrowIfError();
-            return res.IsSuccessful;
-        }
-        catch (OperationCanceledException) { return default; }
-        catch (Exception err)
-        {
-            var a = err.GetType();
-            if (!_ct.IsCancellationRequested) Log.Error(err, $"Agent API `{_config.DisplayName}` error `{nameof(TryPingAgent)}` `{req.Resource}`");
-            return false;
-        }
-    }
-
     private async Task<T?> TryGetAsync<T>(RestRequest req, [CallerMemberName] string? apiFuncName = null)
     {
         try
@@ -180,7 +186,6 @@ internal class AgentApi : IAgentApi, IDisposable
         catch (OperationCanceledException) { return default; }
         catch (Exception err)
         {
-            var a = err.GetType();
             if (!_ct.IsCancellationRequested) Log.Error(err, $"Agent API `{_config.DisplayName}` error `{apiFuncName}` `{req.Resource}`");
             return default;
         }

@@ -115,17 +115,32 @@ public class Program
             var mqttClient = new MqttClient(addonCfg, MqttClientID, ct);
             await mqttClient.ConnectAsync(true).ConfigureAwait(false);
 
+            // Init Portainer instances
             var portainerConnections = new List<PortainerApi>();
-            var rootModels = new List<PortainerHostModel>();
+            var portainerModels = new List<PortainerHostModel>();
             foreach (var portainerCfg in addonCfg.PortainerConfigs)
             {
-                // Init portainer connection
+                // Init portainer API connection
                 var portainerConnection = new PortainerApi(portainerCfg, ct);
                 portainerConnections.Add(portainerConnection);
-
-                // Init root addon model that will sync the information to Home Assistant
+                
+                // Init portainer addon model that will sync the information to Home Assistant
                 var portainerHost = new PortainerHostModel(portainerCfg, portainerConnection, mqttClient, AddonPrefix, AddonManufacturer);
-                rootModels.Add(portainerHost);
+                portainerModels.Add(portainerHost);
+            }
+
+            // Init Agent instances
+            var agentConnections = new List<AgentApi>();
+            var agentModels = new List<AgentHostModel>();
+            foreach (var agentCfg in addonCfg.AgentConfigs)
+            {
+                // Init agent API connection
+                var agentConnection = new AgentApi(agentCfg, ct);
+                agentConnections.Add(agentConnection);
+
+                // Init agent addon model that will sync the information to Home Assistant
+                var agentModel = new AgentHostModel(agentCfg, agentConnection, mqttClient, AddonPrefix, AddonManufacturer);
+                agentModels.Add(agentModel);
             }
 
             // Update loop
@@ -150,9 +165,13 @@ public class Program
 
                     sw.Restart();
 
-                    // Update models
-                    foreach (var rootModel in rootModels)
-                        _ = await rootModel.UpdateAsync().ConfigureAwait(false);
+                    // Update Portainer models
+                    foreach (var portainerModel in portainerModels)
+                        _ = await portainerModel.UpdateAsync().ConfigureAwait(false);
+
+                    // Update Agent models
+                    foreach (var agentModel in agentModels)
+                        _ = await agentModel.UpdateAsync().ConfigureAwait(false);
 
                     sw.Stop();
                     Log.Debug($"Updated in {sw.Elapsed.TotalSeconds:0.000}s");
@@ -167,8 +186,10 @@ public class Program
             }
 
             Log.Information("Shutting down...");
-            rootModels.ForEach(m => m.Dispose());
+            portainerModels.ForEach(m => m.Dispose());
+            agentModels.ForEach(m => m.Dispose());
             portainerConnections.ForEach(c => c.Dispose());
+            agentConnections.ForEach(c => c.Dispose());
 
             // Wait for MQTT entity delete publishes send during disposal  
             await Task.Delay(1500, CancellationToken.None).ConfigureAwait(false);

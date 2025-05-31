@@ -77,7 +77,7 @@ internal class PortainerApi : IPortainerApi, IDisposable
     }
 
     /// <inheritdoc />
-    public Task<SystemVersionResponse?> GetVersionAsync()
+    public Task<SystemVersionResponse?> GetPortainerVersionInfoAsync()
     {
         return TryGetAsync<SystemVersionResponse>(new RestRequest("system/version"));
     }
@@ -86,6 +86,12 @@ internal class PortainerApi : IPortainerApi, IDisposable
     public Task<PortainerEndpoint[]?> GetEndpointsAsync()
     {
         return TryGetAsync<PortainerEndpoint[]>(new RestRequest("endpoints"));
+    }
+
+    /// <inheritdoc />
+    public Task<DockerVersionInfo?> GetDockerVersionInfoAsync(int endpointId)
+    {
+        return TryGetAsync<DockerVersionInfo>(new RestRequest($"endpoints/{endpointId}/docker/version"));
     }
 
     /// <inheritdoc />
