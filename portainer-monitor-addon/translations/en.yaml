@@ -26,4 +26,7 @@ configuration:
     description: Defines if the TLS certificate needs to be valid.
   portainer_configs:
     name: Portainer Configurations
-    description: List of Portainer instances that should be monitored.
+    description: List of Portainer instances that should be monitored (enter value `[]` to clear).
+  agent_configs:
+    name: Agent Configurations
+    description: List of Portainer Agents that should be monitored (enter value `[]` to clear).
