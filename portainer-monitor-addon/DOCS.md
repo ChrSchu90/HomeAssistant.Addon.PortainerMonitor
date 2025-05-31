@@ -32,7 +32,10 @@
 4. Refresh Page ***(F5)***
 5. The Store should now show the addon
 6. Click on the addon ***INSTALL*** button
-7. Add the **Portainer Configurations** that should be monitored inside the options. You can also use secrets e.g. `token: "!secret token_portainer_server1"`
+7. Add the **Portainer Configurations** and/or **Agent Configurations** that should be monitored inside the options. You can also use secrets e.g. `token: "!secret portainer_token_synology"`
+   ><img src="https://github.com/user-attachments/assets/86bfb9f0-a938-4d11-852a-117b00a5e0e3" width="900" />
+   >
+   > ***Portainer Configuration:***
    >``` yaml
    >- id: synology
    >   display_name: 'Synology'
@@ -46,14 +49,36 @@
    >   container_cpu_monitoring: true
    >   container_ram_monitoring: true
    >   container_network_monitoring: true
+   >- id: raspi
+   >   display_name: 'Raspberry Pi'
+   >   host: 192.168.10.125
+   >   port: 9443
+   >   token: 'ptr_...'
+   >   tls_enabled: true
+   >   tls_validate: false
+   >   container_commands: true
+   >   container_state_monitoring: true
+   >   container_cpu_monitoring: true
+   >   container_ram_monitoring: true
+   >   container_network_monitoring: true
    >```
-   ><img src="https://github.com/user-attachments/assets/86bfb9f0-a938-4d11-852a-117b00a5e0e3" width="900" />
-
-8. Add the **Agent Configurations** that should be monitored inside the options. You can also use secrets e.g. `secret: "!secret secret_agent_server1"`
+   > ***Agent Configuration:***
    >``` yaml
    >- id: synology
    >   display_name: 'Synology'
-   >   host: 192.168.10.125
+   >   host: 192.168.10.126
+   >   port: 9443
+   >   secret: 'MyAgentSecret'
+   >   tls_enabled: true
+   >   tls_validate: false
+   >   container_commands: true
+   >   container_state_monitoring: true
+   >   container_cpu_monitoring: true
+   >   container_ram_monitoring: true
+   >   container_network_monitoring: true
+   > - id: raspi
+   >   display_name: 'Raspberry Pi'
+   >   host: 192.168.10.127
    >   port: 9443
    >   secret: 'MyAgentSecret'
    >   tls_enabled: true
@@ -64,7 +89,6 @@
    >   container_ram_monitoring: true
    >   container_network_monitoring: true
    >```
-   ><img src="https://github.com/user-attachments/assets/86bfb9f0-a938-4d11-852a-117b00a5e0e3" width="900" />
 
 9. Start the addon and check for errors: 
    ><img src="https://github.com/user-attachments/assets/5a893b90-f5a7-4e0f-a5ed-a26740ddd15d" width="900" />
@@ -182,6 +206,7 @@ services:
 >    environment:
 >      TZ: Europe/Berlin
 >      AGENT_SECRET: 'MyAgentSecret'
+>      #LOG_LEVEL: DEBUG
 >```
 
 | Name                         | Required   | Default       | Description                                                                             | Limits                                                    |
