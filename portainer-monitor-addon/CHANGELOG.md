@@ -1,4 +1,7 @@
 ﻿## Changelog 🚀
+### 1.2.0
+- Add support for direct `Portainer Agent` connection
+
 ### 1.1.1
 - Improved perfomance for resource monitoring
 - Update of icon for container CPU usage sensor
