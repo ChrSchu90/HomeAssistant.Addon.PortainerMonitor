@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using MQTTnet;
@@ -292,11 +291,7 @@ internal class MqttClient : IMqttClient, IDisposable
 
     private bool CertificateValidationHandler(MqttClientCertificateValidationEventArgs e)
     {
-        if (!_config.MqttTlsValidate || e.SslPolicyErrors == SslPolicyErrors.None) return true;
-
-        if (e.Certificate == null || e.Chain == null) return false;
-        using var cert = new X509Certificate2(e.Certificate);
-        return e.Chain.Build(cert);
+        return !_config.MqttTlsValidate || e.SslPolicyErrors == SslPolicyErrors.None;
     }
 
     private Task HomeAssistantAvailability_Changed(MqttMessageEventArgs e)

@@ -101,11 +101,11 @@ internal class AgentApi : IAgentApi, IDisposable
             res.ThrowIfError();
             return Version.TryParse(res.GetHeaderValue("Portainer-Agent"), out var agentVersion) ? agentVersion : new Version(0, 0, 0);
         }
-        catch (OperationCanceledException) { return default; }
+        catch (OperationCanceledException) { return null; }
         catch (Exception err)
         {
             if (!_ct.IsCancellationRequested) Log.Error(err, $"Agent API `{_config.DisplayName}` error `{nameof(GetAgentVersionAsync)}` `{req.Resource}`");
-            return default;
+            return null;
         }
     }
 
@@ -214,12 +214,7 @@ internal class AgentApi : IAgentApi, IDisposable
 
     private bool RemoteCertificateValidationCallback(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
     {
-        if (!_config.TlsValidate || sslPolicyErrors == SslPolicyErrors.None)
-            return true;
-
-        if (certificate == null || chain == null) return false;
-        using var cert = new X509Certificate2(certificate);
-        return chain.Build(cert);
+        return !_config.TlsValidate || sslPolicyErrors == SslPolicyErrors.None;
     }
 
     #endregion

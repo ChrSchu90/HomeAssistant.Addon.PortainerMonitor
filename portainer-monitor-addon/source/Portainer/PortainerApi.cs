@@ -194,12 +194,7 @@ internal class PortainerApi : IPortainerApi, IDisposable
 
     private bool RemoteCertificateValidationCallback(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
     {
-        if (!_config.TlsValidate || sslPolicyErrors == SslPolicyErrors.None) 
-            return true;
-
-        if (certificate == null || chain == null) return false;
-        using var cert = new X509Certificate2(certificate);
-        return chain.Build(cert);
+        return !_config.TlsValidate || sslPolicyErrors == SslPolicyErrors.None;
     }
 
     #endregion
