@@ -11,7 +11,6 @@ using HomeAssistant.Addon.PortainerMonitor.Portainer;
 /// <seealso cref="ModelBase" />
 internal class AgentHostModel : ModelBase
 {
-
     #region Private Static Fields
 
     #endregion
@@ -31,7 +30,7 @@ internal class AgentHostModel : ModelBase
     /// <param name="addonPrefix">The addon entity ID prefix.</param>
     /// <param name="addonManufacturer">The device manufacturer.</param>
     internal AgentHostModel(IAgentConfig config, IAgentApi agentApi, IMqttClient mqttClient, string addonPrefix, string addonManufacturer)
-        : base(mqttClient, new HaDevice(HaEntityBase.BuildID(addonPrefix, "agent"), agentApi.ID, $"Agent {agentApi.DisplayName}", addonManufacturer), "agent", addonPrefix)
+        : base(mqttClient, new HaDevice(HaEntityBase.BuildID(addonPrefix, "agent"), agentApi.ID, agentApi.DisplayName, addonManufacturer), "agent", addonPrefix)
     {
         Config = config;
         AgentApi = agentApi;

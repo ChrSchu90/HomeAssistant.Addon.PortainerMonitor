@@ -30,12 +30,13 @@ internal interface IPortainerApi
     #endregion
 
     #region Methods
-    
+
     /// <summary>
     /// Gets the portainer system version information.
     /// </summary>
+    /// <param name="updateCheck">if set to <c>true</c> also check for portainer updates.</param>
     /// <returns>The version info or <c>null</c></returns>
-    Task<SystemVersionResponse?> GetPortainerVersionInfoAsync();
+    Task<SystemVersionResponse?> GetPortainerVersionInfoAsync(bool updateCheck);
 
     /// <summary>
     /// Gets the portainer endpoints.

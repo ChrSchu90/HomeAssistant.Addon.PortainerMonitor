@@ -19,6 +19,8 @@ internal class PortainerHostModel : ModelBase
 {
     #region Private Static Fields
 
+    private static readonly TimeSpan UpdateCheckCycle = TimeSpan.FromMinutes(30);
+
     #endregion
 
     #region Private Fields
@@ -30,6 +32,7 @@ internal class PortainerHostModel : ModelBase
     private readonly HaSensor<int> _sensorPausedCnt;
     private readonly HaSensor<int> _sensorStoppedCnt;
     private readonly HaUpdate _updateItem;
+    private DateTimeOffset _lastUpdateCheck;
     private bool _deviceOutdated = true;
 
     #endregion
@@ -111,7 +114,7 @@ internal class PortainerHostModel : ModelBase
         {
             if (Device.Version?.Equals(value) == true) return;
             Device.Version = value;
-            if(value != null)
+            if (value != null)
                 _sensorVersion.Value = value.ToString(3);
             _deviceOutdated = true;
         }
@@ -140,16 +143,12 @@ internal class PortainerHostModel : ModelBase
     {
         force = force || _deviceOutdated;
 
-        var versionInfo = await PortainerApi.GetPortainerVersionInfoAsync().ConfigureAwait(false);
-        if (versionInfo == null) return false;
-
-        var successful = await UpdateVersionInfo(versionInfo).ConfigureAwait(false);
-        if (!successful)return false;
+        if (!await UpdateVersionInfoAsync()) return false;
 
         var endpoints = await PortainerApi.GetEndpointsAsync().ConfigureAwait(false);
         if (endpoints == null) return false;
 
-        successful = await UpdateEndpoints(endpoints, force).ConfigureAwait(false);
+        var successful = await UpdateEndpointsAsync(endpoints, force).ConfigureAwait(false);
         if (successful)
         {
             _sensorAmountContainers.Value = _endpoints.Values.Sum(ep => ep.Containers.Count());
@@ -175,22 +174,49 @@ internal class PortainerHostModel : ModelBase
 
     #region Private Methods
 
-    private Task<bool> UpdateVersionInfo(SystemVersionResponse versionInfo)
+    private async Task<bool> UpdateVersionInfoAsync()
     {
-        Version = versionInfo.ServerVersion;
-        Edition = $"Portainer {versionInfo.ServerEdition}";
+        // Getting version info from Portainer will invoke the GitHub API to receive the latest version,
+        // too many frequent updates will lead into an exceeded API rate limit (60 req/hour).
+        // Therefore, the update check frequency is limited based on the update cycle.
+        var now = DateTimeOffset.Now;
+        var forceUpdateCheck = Version == null || Version == HaDevice.DefaultDeviceVersion ||
+                               string.IsNullOrWhiteSpace(Edition) ||
+                               _updateItem.LatestVersion == null ||
+                               now < _lastUpdateCheck || now - _lastUpdateCheck > UpdateCheckCycle;
 
-        // Update available check
+        var versionInfo = await PortainerApi.GetPortainerVersionInfoAsync(forceUpdateCheck).ConfigureAwait(false);
+        if (versionInfo == null) return false;
+
+        if (!forceUpdateCheck && Version != null && Version != versionInfo.ServerVersion)
+        {
+            // Force update check if server version has been changed
+            versionInfo = await PortainerApi.GetPortainerVersionInfoAsync(true).ConfigureAwait(false);
+            if (versionInfo == null) return false;
+        }
+
+        Version = versionInfo.ServerVersion;
+        if (!string.IsNullOrWhiteSpace(versionInfo.ServerEdition))
+            Edition = $"Portainer {versionInfo.ServerEdition}";
+
+        // Portainer update available item update
         _updateItem.Title = Edition;
         _updateItem.CurrentVersion = Version;
-        if(_updateItem.LatestVersion == null || _updateItem.LatestVersion < _updateItem.CurrentVersion || versionInfo.UpdateAvailable == true)
+        if (_updateItem.LatestVersion == null || _updateItem.LatestVersion < _updateItem.CurrentVersion || versionInfo.UpdateAvailable == true)
             _updateItem.LatestVersion = Version.TryParse(versionInfo.LatestVersion, out var latestVersion) ? latestVersion : _updateItem.CurrentVersion;
         _updateItem.ReleaseUrl = $"https://github.com/portainer/portainer/releases/tag/{_updateItem.LatestVersion}";
 
-        return Task.FromResult(Version > HaDevice.DefaultDeviceVersion);
+        // Update last version check timestamp
+        if (versionInfo.LatestVersion != null || versionInfo.UpdateAvailable == true)
+        {
+            Log.Debug($"Host: Checked `{Config.Id}` for Portainer update, next check at {(now + UpdateCheckCycle).ToLocalTime():G}");
+            _lastUpdateCheck = now;
+        }
+
+        return Version > HaDevice.DefaultDeviceVersion;
     }
 
-    private async Task<bool> UpdateEndpoints(IReadOnlyCollection<PortainerEndpoint> endpoints, bool force)
+    private async Task<bool> UpdateEndpointsAsync(IReadOnlyCollection<PortainerEndpoint> endpoints, bool force)
     {
         var removedEndpoints = _endpoints.Where(p => endpoints.All(a => a.Id != p.Value.ID && a.Name != p.Value.Name)).Select(p => p.Key);
         var removed = false;

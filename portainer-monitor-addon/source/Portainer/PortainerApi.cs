@@ -77,9 +77,15 @@ internal class PortainerApi : IPortainerApi, IDisposable
     }
 
     /// <inheritdoc />
-    public Task<SystemVersionResponse?> GetPortainerVersionInfoAsync()
+    public async Task<SystemVersionResponse?> GetPortainerVersionInfoAsync(bool updateCheck)
     {
-        return TryGetAsync<SystemVersionResponse>(new RestRequest("system/version"));
+        if (updateCheck)
+        {
+            return await TryGetAsync<SystemVersionResponse>(new RestRequest("system/version")).ConfigureAwait(false);
+        }
+
+        var status = await TryGetAsync<SystemStatusResponse>(new RestRequest("system/status")).ConfigureAwait(false);
+        return status == null ? null : new SystemVersionResponse { ServerVersion = status.Version };
     }
 
     /// <inheritdoc />
