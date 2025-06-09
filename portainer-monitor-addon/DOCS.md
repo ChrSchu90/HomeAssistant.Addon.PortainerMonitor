@@ -14,9 +14,7 @@
 - Options to enable/disable container `commands (start, stop ...)`, `state monitoring` and `resource monitoring for CPU, RAM and network`
 - Entity availability per Portainer instance, Environment and Agent
 
-<img src="https://github.com/user-attachments/assets/71f62f6e-211d-49c4-a990-738a668d59e1" width="750" />
-<img src="https://github.com/user-attachments/assets/444e8113-b977-493f-9725-a211bb95fbd5" width="279" />
-<img src="https://github.com/user-attachments/assets/ae1788ad-aff4-4933-be19-ec79e88c0007" width="500" />
+<img src="https://github.com/user-attachments/assets/d3dd4329-7d47-4f71-928f-3df5a78edd7c" width="750" />
 
 ## Installation 🛠️
 
@@ -33,7 +31,7 @@
 5. The Store should now show the addon
 6. Click on the addon ***INSTALL*** button
 7. Add the **Portainer Configurations** and/or **Agent Configurations** that should be monitored inside the options. You can also use secrets e.g. `token: "!secret portainer_token_synology"`
-   ><img src="https://github.com/user-attachments/assets/86bfb9f0-a938-4d11-852a-117b00a5e0e3" width="900" />
+   ><img src="https://github.com/user-attachments/assets/62a51a8d-47a6-4b4c-b2ca-7b316ef7ac39" width="900" />
    >
    > ***Portainer Configuration:***
    >``` yaml
@@ -91,7 +89,7 @@
    >```
 
 9. Start the addon and check for errors: 
-   ><img src="https://github.com/user-attachments/assets/5a893b90-f5a7-4e0f-a5ed-a26740ddd15d" width="900" />
+   ><img src="https://github.com/user-attachments/assets/cb6f9420-ffb4-43bf-812e-1c06c08e945a" width="900" />
 
 > [!TIP]
 > If HA will shown an error on configuration saving after you have cleared 
