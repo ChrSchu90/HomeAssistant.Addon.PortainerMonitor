@@ -31,6 +31,11 @@
 5. The Store should now show the addon
 6. Click on the addon ***INSTALL*** button
 7. Add the **Portainer Configurations** and/or **Agent Configurations** that should be monitored inside the options. You can also use secrets e.g. `token: "!secret portainer_token_synology"`
+
+> [!TIP]
+> If HA will shown an error on configuration saving after you have cleared 
+> the *Portainer* or *Agent* configuration field enter `[]` as value.
+
    ><img src="https://github.com/user-attachments/assets/62a51a8d-47a6-4b4c-b2ca-7b316ef7ac39" width="900" />
    >
    > ***Portainer Configuration:***
@@ -90,10 +95,6 @@
 
 9. Start the addon and check for errors: 
    ><img src="https://github.com/user-attachments/assets/cb6f9420-ffb4-43bf-812e-1c06c08e945a" width="900" />
-
-> [!TIP]
-> If HA will shown an error on configuration saving after you have cleared 
-> the *Portainer* or *Agent* configuration field enter `[]` as value.
 
 ### Standalone (not recommended⚠️)
 When using Home Assistant as self managed docker container you can use the addon container separately. __This is for advanced users only.__
