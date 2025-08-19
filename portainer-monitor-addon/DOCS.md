@@ -70,7 +70,7 @@
    >- id: synology
    >   display_name: 'Synology'
    >   host: 192.168.10.126
-   >   port: 9443
+   >   port: 9001
    >   secret: 'MyAgentSecret'
    >   tls_enabled: true
    >   tls_validate: false
@@ -82,7 +82,7 @@
    > - id: raspi
    >   display_name: 'Raspberry Pi'
    >   host: 192.168.10.127
-   >   port: 9443
+   >   port: 9001
    >   secret: 'MyAgentSecret'
    >   tls_enabled: true
    >   tls_validate: false
