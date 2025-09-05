@@ -203,7 +203,7 @@ internal class PortainerHostModel : ModelBase
         _updateItem.Title = Edition;
         _updateItem.CurrentVersion = Version;
         if (_updateItem.LatestVersion == null || _updateItem.LatestVersion < _updateItem.CurrentVersion || versionInfo.UpdateAvailable == true)
-            _updateItem.LatestVersion = Version.TryParse(versionInfo.LatestVersion, out var latestVersion) ? latestVersion : _updateItem.CurrentVersion;
+            _updateItem.LatestVersion = versionInfo.LatestVersion ?? _updateItem.CurrentVersion;
         _updateItem.ReleaseUrl = $"https://github.com/portainer/portainer/releases/tag/{_updateItem.LatestVersion}";
 
         // Update last version check timestamp

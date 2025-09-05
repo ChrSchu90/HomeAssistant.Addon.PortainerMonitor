@@ -6,11 +6,11 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// Portainer System Status Response
 /// </summary>
-public class SystemStatusResponse
+public record SystemStatusResponse
 {
     /// <summary>
-    /// Gets or sets the portainer version
+    /// Gets the portainer version
     /// </summary>
-    [JsonPropertyName("Version")]
-    public Version Version { get; set; } = new(0, 0, 0);
+    [JsonPropertyName("Version"), JsonConverter(typeof(JsonVersionConverter))]
+    public Version Version { get; init; } = new(0, 0, 0);
 }

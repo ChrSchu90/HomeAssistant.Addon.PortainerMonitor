@@ -2,21 +2,20 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
 /// <summary>
 /// Docker container information
 /// </summary>
-public class DockerContainer
+public record DockerContainer
 {
     /// <summary>
     /// Gets the created unix timestamp.
     /// </summary>
     /// <remarks>Use the <see cref="CreatedTime"/> as parsed datetime</remarks>
     [JsonPropertyName("Created")]
-    public int? Created { get; set; }
+    public int? Created { get; init; }
 
     /// <summary>
     /// Gets the container creation time.
@@ -29,37 +28,31 @@ public class DockerContainer
     /// Gets the unique container identifier.
     /// </summary>
     [JsonPropertyName("Id")]
-    public string Id { get; set; } = string.Empty;
+    public string Id { get; init; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the container image.
+    /// Gets the container image.
     /// </summary>
     [JsonPropertyName("Image")]
-    public string Image { get; set; } = string.Empty;
+    public string Image { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets the container image identifier.
     /// </summary>
     [JsonPropertyName("ImageID")]
-    public string ImageID { get; set; } = string.Empty;
+    public string ImageID { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets the container names.
     /// </summary>
     [JsonPropertyName("Names")]
-    public List<string> Names { get; set; } = new();
+    public List<string> Names { get; init; } = new();
 
     /// <summary>
     /// Gets the container state.
     /// </summary>
     [JsonPropertyName("State"), JsonConverter(typeof(JsonStringEnumConverter))]
-    public ContainerState State { get; set; }
-
-    /// <inheritdoc />
-    public override string ToString()
-    {
-        return $"Container {Names.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))} ({State}) [{Id}]";
-    }
+    public ContainerState State { get; init; }
 }
 
 /// <summary>

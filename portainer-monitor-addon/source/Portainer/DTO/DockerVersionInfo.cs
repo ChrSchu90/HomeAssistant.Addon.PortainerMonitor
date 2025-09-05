@@ -6,23 +6,17 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// Docker version information
 /// </summary>
-public class DockerVersionInfo
+public record DockerVersionInfo
 {
     /// <summary>
     /// Gets the docker version.
     /// </summary>
-    [JsonPropertyName("Version")]
-    public Version Version { get; set; } = null!;
+    [JsonPropertyName("Version"), JsonConverter(typeof(JsonVersionConverter))]
+    public Version Version { get; init; } = null!;
 
     /// <summary>
-    /// Gets or sets the docker API version.
+    /// Gets the docker API version.
     /// </summary>
-    [JsonPropertyName("ApiVersion")]
-    public Version ApiVersion { get; set; } = null!;
-
-    /// <inheritdoc />
-    public override string ToString()
-    {
-        return $"{nameof(DockerVersionInfo)}: v{Version} (API v{ApiVersion})";
-    }
+    [JsonPropertyName("ApiVersion"), JsonConverter(typeof(JsonVersionConverter))]
+    public Version ApiVersion { get; init; } = null!;
 }

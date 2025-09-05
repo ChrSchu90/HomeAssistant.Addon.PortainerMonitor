@@ -182,7 +182,7 @@ internal class DockerContainerModel<T> : ModelBase<EndpointBase<T>> where T : Mo
     /// </summary>
     internal DockerContainer LatestInfo
     {
-        get { return _latestInfo; }
+        get => _latestInfo;
         set
         {
             _previousInfo = _latestInfo;
