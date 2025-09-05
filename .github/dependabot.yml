@@ -1,0 +1,6 @@
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/portainer-monitor-addon/source"
+    schedule:
+      interval: "weekly"
