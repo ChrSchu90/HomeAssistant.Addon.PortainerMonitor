@@ -21,7 +21,7 @@ public sealed class HaEntityBaseTests
         foreach (var check in checks)
         {
             var received = HaEntityBase.BuildID(check.input);
-            Assert.AreEqual(check.expected, received, $"ID does contain invalid chars, expected `check.expected` but received `{received}`");
+            Assert.AreEqual(check.expected, received, "ID does contains invalid chars");
         }
     }
 }
