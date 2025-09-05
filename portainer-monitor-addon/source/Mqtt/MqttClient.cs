@@ -250,7 +250,9 @@ internal class MqttClient : IMqttClient, IDisposable
     private Task MqttClient_ConnectingFailedAsync(ConnectingFailedEventArgs e)
     {
         _connectCompletionSrc?.SetResult();
-        Log.Error(e.Exception, "MQTT: failed to connect!");
+        if (!_ct.IsCancellationRequested)
+            Log.Error(e.Exception, "MQTT: failed to connect!");
+
         return Task.CompletedTask;
     }
 
