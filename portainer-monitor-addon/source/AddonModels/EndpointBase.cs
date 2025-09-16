@@ -2,13 +2,14 @@
 
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
+using HomeAssistant.Addon.PortainerMonitor.Portainer;
 using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
 using Serilog;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using HomeAssistant.Addon.PortainerMonitor.Portainer;
 
 /// <summary>
 /// Endpoint model base that represents an environment
@@ -133,7 +134,7 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
 
         return true;
     }
-    
+
     /// <summary>
     /// Updates the containers asynchronous.
     /// </summary>
@@ -143,13 +144,11 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
     protected virtual async Task<bool> UpdateContainersAsync(IReadOnlyCollection<DockerContainer> containers, bool force)
     {
         var removeContainers = _containers.Keys.Where(k => containers.All(a => a.Id != k));
-        var removed = false;
         foreach (var epKey in removeContainers)
         {
             if (!_containers.TryRemove(epKey, out var ctModel)) continue;
             Log.Information($"Endpoint: Container `{Config.Id}.{Name}.{ctModel.Name}` became unavailable and has been removed");
             ctModel.Dispose();
-            removed = true;
         }
 
         foreach (var ct in containers)
@@ -161,14 +160,16 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
                 continue;
             }
 
-            if (removed)
+            // Check if CT with same name exists, in some edge cases the new container is deployed
+            // before the old one has been removed, which can result in dead HA-entities
+            var ctName = ct.Names.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))?.Trim('/') ?? ct.Id;
+            if (_containers.Values.Any(c => string.Equals(c.Name, ctName, StringComparison.OrdinalIgnoreCase)))
             {
-                // Wait after removal due to too fast remove+add that could lead into dead HA entries
-                removed = false;
-                await Task.Delay(500).ConfigureAwait(false);
+                Log.Information($"Endpoint: Skipped adding container `{Config.Id}.{Name}.{ctName}` because another container with same name already exists");
+                continue;
             }
 
-            ctModel = new DockerContainerModel<T>(this, ct);
+            ctModel = new DockerContainerModel<T>(this, ct, ctName);
             Log.Information($"Endpoint: Container `{Config.Id}.{Name}.{ctModel.Name}` became available and has been added");
             _containers.TryAdd(ctModel.ID, ctModel);
             await ctModel.UpdateAsync(force).ConfigureAwait(false);

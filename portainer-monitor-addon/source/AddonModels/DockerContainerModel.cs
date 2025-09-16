@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt;
 using HomeAssistant.Addon.PortainerMonitor.Mqtt.HaEntities;
+using HomeAssistant.Addon.PortainerMonitor.Portainer;
 using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
 using Serilog;
 
@@ -48,8 +49,8 @@ internal class DockerContainerModel<T> : ModelBase<EndpointBase<T>> where T : Mo
     /// <summary>
     /// Initializes a new instance of the <see cref="PortainerEndpointModel"/> class.
     /// </summary>
-    internal DockerContainerModel(EndpointBase<T> endpoint, DockerContainer container)
-        : base(endpoint, container.Names.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))?.Trim('/') ?? container.Id)
+    internal DockerContainerModel(EndpointBase<T> endpoint, DockerContainer container, string name)
+        : base(endpoint, name)
     {
         ID = container.Id;
         _latestInfo = container;

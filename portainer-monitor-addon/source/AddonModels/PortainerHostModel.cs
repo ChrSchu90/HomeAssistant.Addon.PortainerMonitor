@@ -219,13 +219,11 @@ internal class PortainerHostModel : ModelBase
     private async Task<bool> UpdateEndpointsAsync(IReadOnlyCollection<PortainerEndpoint> endpoints, bool force)
     {
         var removedEndpoints = _endpoints.Where(p => endpoints.All(a => a.Id != p.Value.ID && a.Name != p.Value.Name)).Select(p => p.Key);
-        var removed = false;
         foreach (var epKey in removedEndpoints)
         {
             if (!_endpoints.TryRemove(epKey, out var epModel)) continue;
             Log.Information($"Host: Endpoint `{Config.Id}.{epModel.Name}` became unavailable and has been removed");
             epModel.Dispose();
-            removed = true;
         }
 
         foreach (var ep in endpoints)
@@ -237,11 +235,12 @@ internal class PortainerHostModel : ModelBase
                 continue;
             }
 
-            if (removed)
+            // Check if EP with same name exists, in some edge cases the new EP is deployed
+            // before the old one has been removed, which can result in dead HA-entities
+            if (_endpoints.Values.Any(m => string.Equals(m.Name, ep.Name, StringComparison.OrdinalIgnoreCase)))
             {
-                // Wait after removal due to too fast remove+add that could lead into dead HA entries
-                removed = false;
-                await Task.Delay(1000).ConfigureAwait(false);
+                Log.Information($"Host: Skipped adding endpoint `{Config.Id}.{ep.Name}` because another endpoint with same name already exists");
+                continue;
             }
 
             epModel = new PortainerEndpointModel(this, ep, new EndpointApiWrapper(PortainerApi, ep.Id));
