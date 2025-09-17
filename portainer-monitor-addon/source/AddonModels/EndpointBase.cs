@@ -147,7 +147,7 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
         foreach (var epKey in removeContainers)
         {
             if (!_containers.TryRemove(epKey, out var ctModel)) continue;
-            Log.Information($"Endpoint: Container `{Config.Id}.{Name}.{ctModel.Name}` became unavailable and has been removed");
+            Log.Information($"Endpoint: Container `{Config.Id}.{NameID}.{ctModel.Name}` became unavailable and has been removed");
             ctModel.Dispose();
         }
 
@@ -165,12 +165,12 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
             var ctName = ct.Names.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))?.Trim('/') ?? ct.Id;
             if (_containers.Values.Any(c => string.Equals(c.Name, ctName, StringComparison.OrdinalIgnoreCase)))
             {
-                Log.Information($"Endpoint: Skipped adding container `{Config.Id}.{Name}.{ctName}` because another container with same name already exists");
+                Log.Information($"Endpoint: Skipped adding container `{Config.Id}.{NameID}.{ctName}` because another container with same name already exists");
                 continue;
             }
 
             ctModel = new DockerContainerModel<T>(this, ct, ctName);
-            Log.Information($"Endpoint: Container `{Config.Id}.{Name}.{ctModel.Name}` became available and has been added");
+            Log.Information($"Endpoint: Container `{Config.Id}.{NameID}.{ctModel.Name}` became available and has been added");
             _containers.TryAdd(ctModel.ID, ctModel);
             await ctModel.UpdateAsync(force).ConfigureAwait(false);
         }
