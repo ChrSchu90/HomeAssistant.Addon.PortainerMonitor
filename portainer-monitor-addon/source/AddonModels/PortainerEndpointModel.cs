@@ -34,7 +34,7 @@ internal class PortainerEndpointModel : EndpointBase<PortainerHostModel>
     #endregion
 
     #region Properties
-
+    
     /// <summary>
     /// Gets the portainer host of the endpoint.
     /// </summary>
@@ -42,6 +42,9 @@ internal class PortainerEndpointModel : EndpointBase<PortainerHostModel>
 
     /// <inheritdoc />
     internal override IConnectionConfig Config => Host.Config;
+
+    /// <inheritdoc />
+    internal override string EndpointFullName => $"{Config.Id}.{NameID}";
 
     /// <summary>
     /// Gets the endpoint ID.

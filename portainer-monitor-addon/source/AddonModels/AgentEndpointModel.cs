@@ -42,6 +42,9 @@ internal class AgentEndpointModel : EndpointBase<AgentHostModel>
     /// <inheritdoc />
     internal override IConnectionConfig Config => Host.Config;
 
+    /// <inheritdoc />
+    internal override string EndpointFullName => $"agent.{Config.Id}";
+
     #endregion
 
     #region Public Methods
