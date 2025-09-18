@@ -1,4 +1,10 @@
 ﻿## Changelog 🚀
+### 1.2.1
+- Fixed edge case during recreate of container or stack that could lead into dead entities
+- Adjustment in agent endpoints logs
+- Improved parsing for API version information
+- Improved performance and resource usage
+
 ### 1.2.0
 - Add support for direct `Portainer Agent` connection
 - Limit Portainer API `system/version` requests for update checks to prevent `GitHub API rate limit exceeded`, since on each request Portainer will get the latest version info via GitHub API
