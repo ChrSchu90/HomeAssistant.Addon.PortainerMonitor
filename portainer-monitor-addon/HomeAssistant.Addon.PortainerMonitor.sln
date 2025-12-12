@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.13.35828.75
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11205.157 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HomeAssistant.Addon.PortainerMonitor", "source\HomeAssistant.Addon.PortainerMonitor.csproj", "{DAF83A8C-6E8D-4096-9C87-179430C73D33}"
 EndProject
@@ -24,6 +24,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Addon", "Addon", "{2A8CC443
 		docker_run.sh = docker_run.sh
 		DOCS.md = DOCS.md
 		translations\en.yaml = translations\en.yaml
+		..\README.md = ..\README.md
 		run.sh = run.sh
 	EndProjectSection
 EndProject
