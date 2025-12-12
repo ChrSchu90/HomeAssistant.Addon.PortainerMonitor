@@ -12,8 +12,7 @@
 		<Copyright>$(Company) © $([System.DateTime]::Now.Year). All rights reserved.</Copyright>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<LangVersion>latest</LangVersion>
-		<NoWarn>IDE0011</NoWarn>
+		<LangVersion>14.0</LangVersion>
 	</PropertyGroup>
 
 	<!-- Make internals visible to related test project -->
