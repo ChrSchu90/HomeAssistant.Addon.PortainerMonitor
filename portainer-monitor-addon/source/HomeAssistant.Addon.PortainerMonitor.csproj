@@ -7,7 +7,7 @@
 	<ItemGroup>
 		<PackageReference Include="Cocona.Lite" Version="2.2.0" />
 		<PackageReference Include="MQTTnet.Extensions.ManagedClient" Version="4.3.7.1207" />
-		<PackageReference Include="RestSharp" Version="113.0.0" />
+		<PackageReference Include="RestSharp" Version="113.1.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
 		<PackageReference Include="YamlDotNet" Version="16.3.0" />
 	</ItemGroup>
