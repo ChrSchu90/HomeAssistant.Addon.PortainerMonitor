@@ -86,7 +86,7 @@ jobs:
 
     - name: Container Test Build
       if: ${{ github.ref != 'refs/heads/main' || steps.addon.outputs.version_updated != 'true' }}
-      uses: home-assistant/builder@2025.03.0
+      uses: home-assistant/builder@2025.11.0
       with:
         args: |
           --${{ matrix.arch }} \
@@ -98,7 +98,7 @@ jobs:
     - name: Container Release Build
       id: container_release
       if: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
-      uses: home-assistant/builder@2025.03.0
+      uses: home-assistant/builder@2025.11.0
       with:
         args: |
           --${{ matrix.arch }} \
