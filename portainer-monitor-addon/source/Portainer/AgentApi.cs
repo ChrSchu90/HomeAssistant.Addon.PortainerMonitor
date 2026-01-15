@@ -92,6 +92,7 @@ internal class AgentApi : IAgentApi, IDisposable
         _client.Dispose();
     }
 
+    /// <inheritdoc />
     public async Task<Version?> GetAgentVersionAsync()
     {
         var req = new RestRequest("ping");

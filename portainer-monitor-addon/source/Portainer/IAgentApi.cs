@@ -1,6 +1,5 @@
 ﻿namespace HomeAssistant.Addon.PortainerMonitor.Portainer;
 
-using HomeAssistant.Addon.PortainerMonitor.AddonModels;
 using HomeAssistant.Addon.PortainerMonitor.Portainer.DTO;
 using System;
 using System.Collections.Generic;
@@ -36,7 +35,7 @@ internal interface IAgentApi
     /// Gets the agent version asynchronous.
     /// </summary>
     /// <returns>The version or <c>null</c> if request failed</returns>
-    public Task<Version?> GetAgentVersionAsync();
+    Task<Version?> GetAgentVersionAsync();
 
     /// <summary>
     /// Gets the docker version information.
