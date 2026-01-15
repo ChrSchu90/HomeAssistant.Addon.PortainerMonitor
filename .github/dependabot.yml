@@ -1,5 +1,12 @@
 version: 2
 updates:
+  - package-ecosystem: "github-actions"
+    directory: "/" # default location of `.github/workflows`
+    ignore:
+      - dependency-name: "home-assistant/builder"
+    schedule:
+      interval: "weekly"
+  
   - package-ecosystem: "nuget"
     directory: "/portainer-monitor-addon/source"
     schedule:
