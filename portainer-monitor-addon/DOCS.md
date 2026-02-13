@@ -200,8 +200,8 @@ services:
 >      - 9001:9001
 >    volumes:
 >      - /var/run/docker.sock:/var/run/docker.sock
->      - /var/lib/docker/volumes:/var/lib/docker/volumes
->      - /:/host
+>      #- /var/lib/docker/volumes:/var/lib/docker/volumes
+>      #- /:/host
 >    environment:
 >      TZ: Europe/Berlin
 >      AGENT_SECRET: 'MyAgentSecret'
