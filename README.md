@@ -196,14 +196,14 @@ services:
 >services:
 >  portainer-agent:
 >    image: portainer/agent:lts
->    network_mode: bridge
+>    container_name: portainer-agent
 >    restart: always
->    privileged: true
 >    ports:
 >      - 9001:9001
 >    volumes:
 >      - /var/run/docker.sock:/var/run/docker.sock
->      #- /var/lib/docker/volumes:/var/lib/docker/volumes
+>      - /var/lib/docker/volumes:/var/lib/docker/volumes
+>      - /:/host
 >    environment:
 >      TZ: Europe/Berlin
 >      AGENT_SECRET: 'MyAgentSecret'
