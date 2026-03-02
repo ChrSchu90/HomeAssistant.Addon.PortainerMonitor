@@ -6,8 +6,14 @@ updates:
       - dependency-name: "home-assistant/builder"
     schedule:
       interval: "weekly"
+      day: "friday"
+      time: "12:00"
+      timezone: "Europe/Berlin"
   
   - package-ecosystem: "nuget"
     directory: "/portainer-monitor-addon/source"
     schedule:
       interval: "weekly"
+      day: "friday"
+      time: "12:00"
+      timezone: "Europe/Berlin"
