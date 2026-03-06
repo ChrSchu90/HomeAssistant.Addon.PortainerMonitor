@@ -1,4 +1,7 @@
 ﻿## Changelog 🚀
+### 1.2.3
+- Fixed graceful shutdown of addon to prevent dead entities and improve stability
+
 ### 1.2.2
 - Fixed edge case during recreate of stack that could lead into dead entities
 - Update of dependencies
