@@ -148,7 +148,20 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
     /// <returns>If update was successful</returns>
     protected virtual async Task<bool> UpdateContainersAsync(IReadOnlyCollection<DockerContainer> containers, bool force)
     {
-        var removeContainers = _containers.Keys.Where(k => containers.All(a => a.Id != k));
+        // The key must be a combination of name and ID, because in some edge cases the new container is deployed with a
+        // prefix that will be removed after creation process while the same ID is kept,which can result in dead HA-entities
+        void GetContainerNameAndKey(DockerContainer ct, out string ctName, out string ctKey)
+        {
+            ctName = ct.Names.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))?.Trim('/') ?? ct.Id;
+            ctKey = $"{ctName}+[{ct.Id}]";
+        }
+
+        var removeContainers = _containers.Keys.Where(k => containers.All(a =>
+        {
+            GetContainerNameAndKey(a, out _, out var ctKey);
+            return ctKey != k;
+        }));
+
         foreach (var epKey in removeContainers)
         {
             if (!_containers.TryRemove(epKey, out var ctModel)) continue;
@@ -158,7 +171,8 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
 
         foreach (var ct in containers)
         {
-            if (_containers.TryGetValue(ct.Id, out var ctModel))
+            GetContainerNameAndKey(ct, out string ctName, out var ctKey);
+            if (_containers.TryGetValue(ctKey, out var ctModel))
             {
                 ctModel.LatestInfo = ct;
                 await ctModel.UpdateAsync(force).ConfigureAwait(false);
@@ -167,7 +181,6 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
 
             // Check if CT with same name exists, in some edge cases the new container is deployed
             // before the old one has been removed, which can result in dead HA-entities
-            var ctName = ct.Names.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))?.Trim('/') ?? ct.Id;
             if (_containers.Values.Any(c => string.Equals(c.Name, ctName, StringComparison.OrdinalIgnoreCase)))
             {
                 Log.Information($"Endpoint: Skipped adding container `{EndpointFullName}.{ctName}` because another container with same name already exists");
@@ -176,7 +189,7 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
 
             ctModel = new DockerContainerModel<T>(this, ct, ctName);
             Log.Information($"Endpoint: Container `{EndpointFullName}.{ctModel.Name}` became available and has been added");
-            _containers.TryAdd(ctModel.ID, ctModel);
+            _containers.TryAdd(ctKey, ctModel);
             await ctModel.UpdateAsync(force).ConfigureAwait(false);
         }
 

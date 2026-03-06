@@ -1,4 +1,8 @@
 ﻿## Changelog 🚀
+### 1.2.2
+- Fixed edge case during recreate of stack that could lead into dead entities
+- Update of dependencies
+
 ### 1.2.1
 - Fixed edge case during recreate of container or stack that could lead into dead entities
 - Adjustment in agent endpoints logs
