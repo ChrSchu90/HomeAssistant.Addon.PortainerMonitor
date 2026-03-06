@@ -27,6 +27,80 @@ configuration:
   portainer_configs:
     name: Portainer Configurations
     description: List of Portainer instances that should be monitored (enter value `[]` to clear).
+    fields:
+      id:
+        name: ID
+        description: Unique identifier used to create the mqtt IDs (e.g. `raspi`).
+      display_name:
+        name: Display Name
+        description: Name used for display purposes (e.g. `Raspberry Pi`).
+      host:
+        name: Host
+        description: Hostname or IP of the Portainer Agent
+      port:
+        name: Port 
+        description: Port of the Portainer Agent.
+      token:
+        name: API Token
+        description: Portainer API Token (https://docs.portainer.io/api/access#creating-an-access-token).
+      tls_enabled:
+        name: TLS Enabled
+        description: Use TLS (https) for Portainer Agent connection.
+      tls_validate:
+        name: Validate TLS Certificate
+        description: Defines if the TLS certificate needs to be valid.
+      container_commands:
+        name: Container Commands
+        description: Create buttons/switches to start, stop, pause and restart cotnainers.
+      container_state_monitoring:
+        name: State Monitoring
+        description: Create state sensor for containers (Created, Restarting, Running, Removing, Paused, Exited, Dead).
+      container_cpu_monitoring:
+        name: CPU Monitoring
+        description: Create CPU usage sensor for containers.
+      container_ram_monitoring:
+        name: RAM Monitoring
+        description: Create RAM usage sensors for containers.
+      container_network_monitoring:
+        name: Network Monitoring
+        description: Create download/upload sensors for containers.
   agent_configs:
     name: Agent Configurations
     description: List of Portainer Agents that should be monitored (enter value `[]` to clear).
+    fields:
+      id:
+        name: ID
+        description: Unique identifier used to create the mqtt IDs (e.g. `raspi`).
+      display_name:
+        name: Display Name
+        description: Name used for display purposes (e.g. `Raspberry Pi`).
+      host:
+        name: Host
+        description: Hostname or IP of the Portainer Agent
+      port:
+        name: Port 
+        description: Port of the Portainer Agent.
+      secret:
+        name: Secret
+        description: Portainer Agent Secret (https://docs.portainer.io/admin/environments/add/docker/agent).
+      tls_enabled:
+        name: TLS Enabled
+        description: Use TLS (https) for Portainer Agent connection.
+      tls_validate:
+        name: Validate TLS Certificate
+        description: Defines if the TLS certificate needs to be valid.
+      container_commands:
+        name: Container Commands
+        description: Create buttons/switches to start, stop, pause and restart cotnainers.
+      container_state_monitoring:
+        name: State Monitoring
+        description: Create state sensor for containers (Created, Restarting, Running, Removing, Paused, Exited, Dead).
+      container_cpu_monitoring:
+        name: CPU Monitoring
+        description: Create CPU usage sensor for containers.
+      container_ram_monitoring:
+        name: RAM Monitoring
+        description: Create RAM usage sensors for containers.
+      container_network_monitoring:
+        name: Network Monitoring
+        description: Create download/upload sensors for containers.
