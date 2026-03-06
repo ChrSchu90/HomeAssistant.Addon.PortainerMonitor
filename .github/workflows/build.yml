@@ -78,7 +78,7 @@ jobs:
       run: dotnet publish ${{ env.NET_PROJECT }} --verbosity normal --configuration ${{ env.NET_BUILD_CONFIGURATION }} -r ${{ matrix.rid }} -p:DebugType=embedded -p:PublishSingleFile=true -p:Version=${{ steps.addon.outputs.version }} --self-contained -o ${{ env.NET_PUBLISH_DIR }}${{ matrix.arch }}
 
     - name: Docker Login
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
