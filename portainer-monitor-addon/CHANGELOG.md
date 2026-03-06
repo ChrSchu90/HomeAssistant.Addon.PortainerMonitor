@@ -1,6 +1,6 @@
 ﻿## Changelog 🚀
 ### 1.2.3
-- Resolved a problem with graceful shutdown that could leave behind inactive entities
+- Fixed a problem with graceful shutdown that could leave behind inactive entities
 
 ### 1.2.2
 - Fixed edge case during recreate of stack that could lead into dead entities
