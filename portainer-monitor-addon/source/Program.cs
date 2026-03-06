@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Cocona;
@@ -35,7 +36,7 @@ public class Program
     /// <summary>
     /// The default full file name for the config inside a Home Assistant addon container
     /// </summary>
-    private const string DefaultConfigFullFileName = "./data/options.json";
+    private const string DefaultConfigFullFileName = "/data/options.json";
 
     /// <summary>
     /// The environment variable key which contains the configuration
@@ -72,7 +73,27 @@ public class Program
          [Option("mqttport", Description = "Override MQTT Port")] ushort? mqttPort,
          CoconaAppContext ctx) =>
         {
-            var ct = ctx.CancellationToken;
+            using var shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(ctx.CancellationToken);
+            var ct = shutdownCts.Token;
+
+            PosixSignalRegistration? RegisterSignal(PosixSignal signal)
+            {
+                try
+                {
+                    return PosixSignalRegistration.Create(signal, context =>
+                    {
+                        context.Cancel = true;
+                        shutdownCts.Cancel();
+                    });
+                }
+                catch (PlatformNotSupportedException)
+                {
+                    return null;
+                }
+            }
+
+            using var sigTerm = RegisterSignal(PosixSignal.SIGTERM);
+            using var sigInt = RegisterSignal(PosixSignal.SIGINT);
 
             // Load config
             AddonConfig? addonCfg = null;
@@ -192,7 +213,7 @@ public class Program
             agentConnections.ForEach(c => c.Dispose());
 
             // Wait for MQTT entity delete publishes send during disposal  
-            await Task.Delay(1500, CancellationToken.None).ConfigureAwait(false);
+            await Task.Delay(2000, CancellationToken.None).ConfigureAwait(false);
             mqttClient.Dispose();
             Log.Information("Shutdown completed!");
         });

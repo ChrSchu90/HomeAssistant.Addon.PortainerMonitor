@@ -26,7 +26,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Addon", "Addon", "{2A8CC443
 		DOCS.md = DOCS.md
 		translations\en.yaml = translations\en.yaml
 		..\README.md = ..\README.md
-		run.sh = run.sh
+		rootfs\services.d\portainer-monitor\run = rootfs\services.d\portainer-monitor\run
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HomeAssistant.Addon.PortainerMonitor.Tests", "tests\HomeAssistant.Addon.PortainerMonitor.Tests.csproj", "{0FA4790D-3F16-E42C-E022-84571DA2673F}"
