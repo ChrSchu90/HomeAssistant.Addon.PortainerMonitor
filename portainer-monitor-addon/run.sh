@@ -9,5 +9,5 @@ else
     MqttPw=$(bashio::services "mqtt" "password")
     MqttHost=$(bashio::services "mqtt" "host")
     MqttPort=$(bashio::services "mqtt" "port")
-    exec /HomeAssistant.Addon.PortainerMonitor --mqttuser "${MqttUser}" --mqttpw "${MqttPw}" --mqtthost "${MqttHost}" --mqttport "${MqttPort}"
+    exec /HomeAssistant.Addon.PortainerMonitor --mqtt-user "${MqttUser}" --mqtt-password "${MqttPw}" --mqtt-host "${MqttHost}" --mqtt-port "${MqttPort}"
 fi
