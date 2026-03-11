@@ -2,8 +2,6 @@ version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/" # default location of `.github/workflows`
-    ignore:
-      - dependency-name: "home-assistant/builder" # Newer versions will not support armv7 anymore! https://github.com/home-assistant/builder/releases/tag/2025.11.0
     schedule:
       interval: "weekly"
       day: "friday"
