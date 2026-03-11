@@ -115,4 +115,4 @@ jobs:
       with:
         tag_name: ${{ steps.addon.outputs.tag }}
         prerelease: false
-        make_latest: ${{ matrix.arch == 'amd64'}}
+        make_latest: ${{ matrix.arch == 'amd64' }}
