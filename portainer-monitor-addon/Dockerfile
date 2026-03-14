@@ -3,7 +3,8 @@ FROM $BUILD_FROM
 
 ARG BUILD_ARCH=amd64
 
-RUN apk add icu-libs icu-data-full && \
+RUN apk add --no-cache icu-libs icu-data-full && \
+    rm -rf /tmp/* /var/tmp/* /var/cache/distfiles/* && \
     mkdir -p /etc/services.d/portainer-monitor
 
 COPY source/bin/publish/${BUILD_ARCH} .
