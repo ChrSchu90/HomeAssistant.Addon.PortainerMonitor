@@ -6,7 +6,6 @@ url: "https://github.com/ChrSchu90/HomeAssistant.Addon.PortainerMonitor"
 image: "ghcr.io/chrschu90/homeassistant-portainer-monitor-{arch}"
 arch:
   - amd64
-  - armv7
   - aarch64
 init: false
 discovery: 

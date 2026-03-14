@@ -101,7 +101,7 @@
 ### Standalone (not recommended⚠️)
 When using Home Assistant as self managed docker container you can use the addon container separately. __This is for advanced users only.__
 
-docker compose example ***(make sure you use the correct architecture like `amd64`, `armv7` or `aarch64`)***:
+docker compose example ***(make sure you use the correct architecture like `amd64` or `aarch64`)***:
 ``` yaml
 version: "3.3"                                                                                                                                   
 services:
