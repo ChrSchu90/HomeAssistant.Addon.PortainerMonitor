@@ -86,8 +86,8 @@ jobs:
       with:
         images: ghcr.io/${{ steps.addon.outputs.owner }}/homeassistant-portainer-monitor-${{ matrix.arch }}
         tags: |
-          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
           type=raw,value=${{ steps.addon.outputs.version }},enable=${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
+          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
           type=raw,value=ci,enable=${{ github.ref != 'refs/heads/main' || steps.addon.outputs.version_updated != 'true' }}
 
     - name: HA Container Build
