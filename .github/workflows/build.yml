@@ -99,12 +99,12 @@ jobs:
         image-tags: ${{ steps.dockermeta.outputs.tag-names }}
         labels: ${{ steps.dockermeta.outputs.labels }}
         push: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
+        cosign: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
         version: ${{ steps.addon.outputs.version }}        
         container-registry: ghcr.io
         container-registry-username: ${{ github.repository_owner }}
         container-registry-password: ${{ secrets.GITHUB_TOKEN }}
         cache-gha: false
-        cosign: false
 
     - name: Generate Release Tag
       if: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
