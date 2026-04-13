@@ -1,5 +1,5 @@
 ARG BUILD_ARCH=amd64
-FROM ghcr.io/home-assistant/${BUILD_ARCH}-base:latest
+FROM ghcr.io/home-assistant/${BUILD_ARCH}-base:3.23
 
 ARG BUILD_ARCH=amd64
 
