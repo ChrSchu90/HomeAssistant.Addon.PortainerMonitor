@@ -1,4 +1,9 @@
 ﻿## Changelog 🚀
+### 1.3.0
+ - Dropped support for the deprecated `armv7` architecture (see:[Deprecating 32-bit systems](https://community.home-assistant.io/t/deprecating-core-and-supervised-installation-methods-and-32-bit-systems/893617))
+ - Improved cleanup after dependency installation to reduce Docker image size
+ - Update of dependencies
+
 ### 1.2.3
 - Fixed a problem with graceful shutdown that could leave behind inactive entities
 
