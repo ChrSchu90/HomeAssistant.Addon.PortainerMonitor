@@ -2,6 +2,8 @@ name: Build
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 5' # Every Friday at 06:00 UTC
   push:
     branches:
       - '**'
@@ -22,49 +24,50 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - arch: "amd64"
-            rid: "linux-musl-x64"
-            latest: true
-          - arch: "armv7"
-            rid: "linux-musl-arm"
-            latest: false
-          - arch: "aarch64"
-            rid: "linux-musl-arm64"
-            latest: false
+          - arch: amd64
+            os: ubuntu-24.04
+            rid: linux-musl-x64
+          - arch: aarch64
+            os: ubuntu-24.04-arm
+            rid: linux-musl-arm64
+    runs-on: ${{ matrix.os }}
     permissions:
-      contents: write
-      id-token: write
-      packages: write
+      packages: write # Docker push image to GHCR
+      id-token: write # GHCR auth and Cosign OIDC signing/verification
+      contents: write # Push Git tags & Create/update GitHub Releases
     steps:
     - name: Checkout
       uses: actions/checkout@v6
       with:
         fetch-depth: 0
         fetch-tags: true
-    
+
     - name: Get Addon Info
       id: addon
+      shell: bash
+      env:
+        OWNER: ${{ github.repository_owner }}
       run: |
+          echo "owner=${OWNER,,}" >> $GITHUB_OUTPUT # Convert owner to lowercase for Docker image naming
           version=$(cat ${{ env.ADDON_CFG_FILE }} | grep version | grep -P -o "[\d\.]*")
-          echo "version=$version" >> $GITHUB_OUTPUT
-          tag="${{ matrix.arch }}-$version"
-          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "version=$version" >> $GITHUB_OUTPUT # Version from config.yaml
+          tag="${{ matrix.arch }}-$version"         # Tag format: arch-version (e.g., amd64-1.0.0)
+          echo "tag=$tag" >> $GITHUB_OUTPUT         # Output the tag for Git Tag creation and GH Release
           if [ $(git tag -l "$tag") ]; then
             echo "version_updated=false" >> $GITHUB_OUTPUT
           else
             echo "version_updated=true" >> $GITHUB_OUTPUT
           fi
-    
+
     - name: .NET Setup
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: |
           10.0.x
-    
+
     - name: .NET Restore
       run: dotnet restore ${{ env.NET_SOLUTION }}
 
@@ -77,47 +80,44 @@ jobs:
     - name: .NET Publish
       run: dotnet publish ${{ env.NET_PROJECT }} --verbosity normal --configuration ${{ env.NET_BUILD_CONFIGURATION }} -r ${{ matrix.rid }} -p:DebugType=embedded -p:PublishSingleFile=true -p:Version=${{ steps.addon.outputs.version }} --self-contained -o ${{ env.NET_PUBLISH_DIR }}${{ matrix.arch }}
 
-    - name: Docker Login
-      uses: docker/login-action@v4
+    - name: Docker tags & labels
+      uses: docker/metadata-action@v6
+      id: dockermeta
       with:
-        registry: ghcr.io
-        username: ${{ github.repository_owner }}
-        password: ${{ secrets.GITHUB_TOKEN }}        
+        images: ghcr.io/${{ steps.addon.outputs.owner }}/homeassistant-portainer-monitor-${{ matrix.arch }}
+        tags: |
+          type=raw,value=${{ steps.addon.outputs.version }},enable=${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
+          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
+          type=raw,value=ci,enable=${{ github.ref != 'refs/heads/main' || steps.addon.outputs.version_updated != 'true' }}
 
-    - name: Container Test Build
-      if: ${{ github.ref != 'refs/heads/main' || steps.addon.outputs.version_updated != 'true' }}
-      uses: home-assistant/builder@2025.09.0 # Newer versions will not support armv7 anymore! https://github.com/home-assistant/builder/releases/tag/2025.11.0
+    - name: HA Container Build
+      uses: home-assistant/builder/actions/build-image@2026.03.2
       with:
-        args: |
-          --${{ matrix.arch }} \
-          --test \
-          --no-cache \
-          --no-latest \
-          --target portainer-monitor-addon
-
-    - name: Container Release Build
-      id: container_release
-      if: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
-      uses: home-assistant/builder@2025.09.0 # Newer versions will not support armv7 anymore! https://github.com/home-assistant/builder/releases/tag/2025.11.0
-      with:
-        args: |
-          --${{ matrix.arch }} \
-          --no-cache \
-          --docker-hub ghcr.io/${{ github.repository_owner }} \
-          --target portainer-monitor-addon
+        arch: ${{ matrix.arch }}
+        image: ghcr.io/${{ steps.addon.outputs.owner }}/homeassistant-portainer-monitor-${{ matrix.arch }}
+        context: ./portainer-monitor-addon
+        image-tags: ${{ steps.dockermeta.outputs.tag-names }}
+        labels: ${{ steps.dockermeta.outputs.labels }}
+        push: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
+        cosign: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
+        version: ${{ steps.addon.outputs.version }}        
+        container-registry: ghcr.io
+        container-registry-username: ${{ github.repository_owner }}
+        container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+        cache-gha: false
 
     - name: Generate Release Tag
-      if: ${{ steps.container_release.outcome == 'success' }}
+      if: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
       run: |
           git config user.name "GitHub Actions"
           git config user.email "github-actions@noreply.github.com"
           git tag -a ${{ steps.addon.outputs.tag }} -m ${{ steps.addon.outputs.tag }}
           git push origin ${{ steps.addon.outputs.tag }}
-    
+
     - name: Create Release
-      if: ${{ steps.container_release.outcome == 'success' }}
+      if: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
       uses: softprops/action-gh-release@v3
       with:
         tag_name: ${{ steps.addon.outputs.tag }}
         prerelease: false
-        make_latest: ${{ matrix.latest }}
+        make_latest: ${{ matrix.arch == 'amd64' }}
