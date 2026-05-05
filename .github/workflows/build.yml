@@ -115,10 +115,11 @@ jobs:
           git push origin ${{ steps.addon.outputs.tag }}
 
     - name: Create Release
-      if: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' }}
+      if: ${{ github.ref == 'refs/heads/main' && steps.addon.outputs.version_updated == 'true' && matrix.arch == 'amd64' }}
       uses: softprops/action-gh-release@v3
       with:
+        name: ${{ steps.addon.outputs.version }}
         tag_name: ${{ steps.addon.outputs.tag }}
         prerelease: false
-        make_latest: ${{ matrix.arch == 'amd64' }}
-        generate_release_notes: ${{ matrix.arch == 'amd64' }}
+        make_latest: true
+        generate_release_notes: true
