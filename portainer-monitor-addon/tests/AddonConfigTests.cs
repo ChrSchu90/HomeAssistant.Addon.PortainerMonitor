@@ -29,14 +29,14 @@ public sealed class AddonConfigTests
 
         var oldUpdateInterval = cfg.UpdateInterval;
         cfg.UpdateInterval = 0;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid update interval accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid update interval accepted");
         cfg.UpdateInterval = oldUpdateInterval;
 
         var oldPortainerConfigs = cfg.PortainerConfigs.ToArray();
         var oldAgentConfigs = cfg.AgentConfigs.ToArray();
         cfg.PortainerConfigs.Clear();
         cfg.AgentConfigs.Clear();
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Empty portainer and agent configs accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Empty portainer and agent configs accepted");
         cfg.PortainerConfigs.AddRange(oldPortainerConfigs);
         cfg.AgentConfigs.AddRange(oldAgentConfigs);
     }
@@ -49,12 +49,12 @@ public sealed class AddonConfigTests
 
         var oldHost = cfg.MqttHost;
         cfg.MqttHost = string.Empty;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid MQTT host accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid MQTT host accepted");
         cfg.MqttHost = oldHost;
 
         var oldPort = cfg.MqttPort;
         cfg.MqttPort = 0;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid MQTT port accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid MQTT port accepted");
         cfg.MqttPort = oldPort;
     }
 
@@ -66,27 +66,27 @@ public sealed class AddonConfigTests
 
         var oldId = cfg.Id;
         cfg.Id = string.Empty;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer ID accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid Portainer ID accepted");
         cfg.Id = oldId;
 
         var oldDisplayName = cfg.DisplayName;
         cfg.DisplayName = string.Empty;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer display name accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid Portainer display name accepted");
         cfg.DisplayName = oldDisplayName;
 
         var oldHost = cfg.Host;
         cfg.Host = string.Empty;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer host accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid Portainer host accepted");
         cfg.Host = oldHost;
 
         var oldPort = cfg.Port;
         cfg.Port = 0;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer port accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid Portainer port accepted");
         cfg.Port = oldPort;
 
         var oldToken = cfg.Token;
         cfg.Token = string.Empty;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer token accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid Portainer token accepted");
         cfg.Token = oldToken;
     }
 
@@ -98,27 +98,27 @@ public sealed class AddonConfigTests
 
         var oldId = cfg.Id;
         cfg.Id = string.Empty;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer ID accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid Portainer ID accepted");
         cfg.Id = oldId;
 
         var oldDisplayName = cfg.DisplayName;
         cfg.DisplayName = string.Empty;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer display name accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid Portainer display name accepted");
         cfg.DisplayName = oldDisplayName;
 
         var oldHost = cfg.Host;
         cfg.Host = string.Empty;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer host accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid Portainer host accepted");
         cfg.Host = oldHost;
 
         var oldPort = cfg.Port;
         cfg.Port = 0;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer port accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid Portainer port accepted");
         cfg.Port = oldPort;
 
         var oldToken = cfg.Secret;
         cfg.Secret = string.Empty;
-        Assert.ThrowsException<ConfigException>(cfg.Validate, "Invalid Portainer token accepted");
+        Assert.ThrowsExactly<ConfigException>(cfg.Validate, "Invalid Portainer token accepted");
         cfg.Secret = oldToken;
     }
 
