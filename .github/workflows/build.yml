@@ -15,7 +15,7 @@ on:
       - 'main'
 
 env:
-  NET_SOLUTION: portainer-monitor-addon/HomeAssistant.Addon.PortainerMonitor.sln
+  NET_SOLUTION: portainer-monitor-addon/HomeAssistant.Addon.PortainerMonitor.slnx
   NET_PROJECT: portainer-monitor-addon/source/HomeAssistant.Addon.PortainerMonitor.csproj
   NET_PUBLISH_DIR: portainer-monitor-addon/source/bin/publish/
   NET_BUILD_CONFIGURATION: Release

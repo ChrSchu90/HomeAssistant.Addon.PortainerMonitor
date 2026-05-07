@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/Addon/">
+    <File Path="../README.md" />
+    <File Path=".dockerignore" />
+    <File Path="CHANGELOG.md" />
+    <File Path="config.yaml" />
+    <File Path="debug.sh" />
+    <File Path="Dockerfile" />
+    <File Path="DOCS.md" />
+    <File Path="run.sh" />
+    <File Path="translations/en.yaml" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="../.gitattributes" />
+    <File Path="../.github/dependabot.yml" />
+    <File Path="../.github/workflows/build.yml" />
+    <File Path="../.gitignore" />
+    <File Path="../global.json" />
+    <File Path="../README.md" />
+    <File Path="../repository.yaml" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="source/HomeAssistant.Addon.PortainerMonitor.csproj" />
+  <Project Path="tests/HomeAssistant.Addon.PortainerMonitor.Tests.csproj" />
+</Solution>
