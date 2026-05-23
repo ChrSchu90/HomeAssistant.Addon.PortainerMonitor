@@ -31,7 +31,7 @@ schema:
       display_name: str
       host: str
       port: int(1,65535)?
-      token: str
+      token: password
       tls_enabled: bool?
       tls_validate: bool?
       container_commands: bool?
@@ -44,7 +44,7 @@ schema:
       display_name: str
       host: str
       port: int(1,65535)?
-      secret: str
+      secret: password
       tls_enabled: bool?
       tls_validate: bool?
       container_commands: bool?
