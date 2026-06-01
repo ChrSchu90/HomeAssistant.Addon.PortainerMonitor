@@ -1,6 +1,4 @@
-# ![image](https://portainer-io-assets.sfo2.cdn.digitaloceanspaces.com/logos/portainer.png) Portainer Monitor Addon for Home Assistant
-
-[![Build](https://github.com/ChrSchu90/HomeAssistant.Addon.PortainerMonitor/actions/workflows/build.yml/badge.svg)](https://github.com/ChrSchu90/HomeAssistant.Addon.PortainerMonitor/actions/workflows/build.yml)
+# ![image](https://portainer-io-assets.sfo2.cdn.digitaloceanspaces.com/logos/portainer.png) Portainer Monitor Addon for Home Assistant [![Build](https://github.com/ChrSchu90/HomeAssistant.Addon.PortainerMonitor/actions/workflows/build.yml/badge.svg)](https://github.com/ChrSchu90/HomeAssistant.Addon.PortainerMonitor/actions/workflows/build.yml)
 
 ## Features ✔️
 - Support for **Supervised** and **Standalone** Home Assistant installations
