@@ -91,7 +91,7 @@ jobs:
           type=raw,value=ci,enable=${{ github.ref != 'refs/heads/main' || steps.addon.outputs.version_updated != 'true' }}
 
     - name: HA Container Build
-      uses: home-assistant/builder/actions/build-image@2026.03.2
+      uses: home-assistant/builder/actions/build-image@2026.06.0
       with:
         arch: ${{ matrix.arch }}
         image: ghcr.io/${{ steps.addon.outputs.owner }}/homeassistant-portainer-monitor-${{ matrix.arch }}
