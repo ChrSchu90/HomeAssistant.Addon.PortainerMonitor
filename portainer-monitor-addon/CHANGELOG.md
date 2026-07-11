@@ -1,4 +1,8 @@
 ﻿## Changelog 🚀
+### 1.3.2
+ - Update base image to v3.24
+ - Update `YamlDotNet` to v18.1.0
+
 ### 1.3.1
  - Update `YamlDotNet` to v18.0.0
  - Update base image
