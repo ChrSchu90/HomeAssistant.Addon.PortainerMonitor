@@ -209,7 +209,7 @@ internal class PortainerHostModel : ModelBase
         // Update last version check timestamp
         if (versionInfo.LatestVersion != null || versionInfo.UpdateAvailable == true)
         {
-            Log.Debug($"Host: Checked `{Config.Id}` for Portainer update, next check at {(now + UpdateCheckCycle).ToLocalTime():G}");
+            Log.Debug("Host: Checked {ConfigId} for Portainer update, next check at {DateTimeOffset:G}", Config.Id, (now + UpdateCheckCycle).ToLocalTime());
             _lastUpdateCheck = now;
         }
 
@@ -222,7 +222,7 @@ internal class PortainerHostModel : ModelBase
         foreach (var epKey in removedEndpoints)
         {
             if (!_endpoints.TryRemove(epKey, out var epModel)) continue;
-            Log.Information($"Host: Endpoint `{Config.Id}.{epModel.Name}` became unavailable and has been removed");
+            Log.Information("Host: Endpoint {ConfigId}.{EpModelName} became unavailable and has been removed", Config.Id, epModel.Name);
             epModel.Dispose();
         }
 
@@ -239,12 +239,12 @@ internal class PortainerHostModel : ModelBase
             // before the old one has been removed, which can result in dead HA-entities
             if (_endpoints.Values.Any(m => string.Equals(m.Name, ep.Name, StringComparison.OrdinalIgnoreCase)))
             {
-                Log.Information($"Host: Skipped adding endpoint `{Config.Id}.{ep.Name}` because another endpoint with same name already exists");
+                Log.Information("Host: Skipped adding endpoint {ConfigId}.{EpName} because another endpoint with same name already exists", Config.Id, ep.Name);
                 continue;
             }
 
             epModel = new PortainerEndpointModel(this, ep, new EndpointApiWrapper(PortainerApi, ep.Id));
-            Log.Information($"Host: Endpoint `{Config.Id}.{epModel.Name}` became available and has been added");
+            Log.Information("Host: Endpoint {ConfigId}.{EpModelName} became available and has been added", Config.Id, epModel.Name);
             _endpoints.TryAdd(key, epModel);
             await epModel.UpdateAsync(force).ConfigureAwait(false);
         }

@@ -129,7 +129,7 @@ internal class MqttClient : IMqttClient, IDisposable
     /// </summary>
     public async Task ConnectAsync(bool waitForResult)
     {
-        Log.Information($"MQTT: Connecting to {_config.MqttHost}:{_config.MqttPort}...");
+        Log.Information("MQTT: Connecting to {ConfigMqttHost}:{ConfigMqttPort}...", _config.MqttHost, _config.MqttPort);
         if (!waitForResult)
         {
             await _mqttClient.StartAsync(_mqttOptions).ConfigureAwait(false);
@@ -163,7 +163,7 @@ internal class MqttClient : IMqttClient, IDisposable
             {
                 ev = new AsyncEvent<MqttMessageEventArgs>();
                 _subs.TryAdd(topic, ev);
-                Log.Verbose($"MQTT: Subscribe to topic `{topic}`");
+                Log.Verbose("MQTT: Subscribe to topic {Topic}", topic);
                 await _mqttClient.SubscribeAsync(topic).ConfigureAwait(false);
             }
 
@@ -186,7 +186,7 @@ internal class MqttClient : IMqttClient, IDisposable
                 ev.RemoveHandler(callback);
                 if (!ev.HasHandlers && _subs.TryRemove(topic, out _))
                 {
-                    Log.Verbose($"MQTT: Unsubscribe from topic `{topic}`");
+                    Log.Verbose("MQTT: Unsubscribe from topic {Topic}", topic);
                     await _mqttClient.UnsubscribeAsync(topic).ConfigureAwait(false);
                 }
             }
@@ -202,13 +202,13 @@ internal class MqttClient : IMqttClient, IDisposable
     {
         try
         {
-            Log.Verbose($"MQTT: Publish topic `{topic}` with payload:\n{payload ?? "null"}");
+            Log.Verbose("MQTT: Publish topic {Topic} with payload:\n{Payload}", topic, payload ?? "null");
             await _mqttClient.EnqueueAsync(topic, _ct.IsCancellationRequested ? null : payload, level, retain).ConfigureAwait(false);
             return true;
         }
         catch (Exception err)
         {
-            Log.Error(err, $"MQTT: Error on publish topic `{topic}` with payload:\n{payload ?? "null"}");
+            Log.Error(err, "MQTT: Error on publish topic {Topic} with payload:\n{Payload}", topic, payload ?? "null");
             return false;
         }
     }
@@ -243,7 +243,7 @@ internal class MqttClient : IMqttClient, IDisposable
 
     private Task MqttClient_ConnectionStateChangedAsync(EventArgs arg)
     {
-        Log.Information($"MQTT: Connection state changed to `{(_mqttClient.IsConnected ? "Connected" : "Disconnected")}`");
+        Log.Information("MQTT: Connection state changed to {Disconnected}", _mqttClient.IsConnected ? "Connected" : "Disconnected");
         return OnConnectionStateChangedAsync(this, _mqttClient.IsConnected);
     }
 
@@ -286,7 +286,7 @@ internal class MqttClient : IMqttClient, IDisposable
         if (ev.HasHandlers && !_ct.IsCancellationRequested)
         {
             var payload = message.ConvertPayloadToString();
-            Log.Verbose($"MQTT: Received topic `{message.Topic}` with payload:\n`{payload}`");
+            Log.Verbose("MQTT: Received topic {MessageTopic} with payload:\n{Payload}", message.Topic, payload);
             await ev.InvokeAsync(new MqttMessageEventArgs(message, payload)).ConfigureAwait(false);
         }
     }
@@ -298,7 +298,7 @@ internal class MqttClient : IMqttClient, IDisposable
 
     private Task HomeAssistantAvailability_Changed(MqttMessageEventArgs e)
     {
-        Log.Information($"MQTT: Home Assistant availability changed to `{e.MessageContent}`");
+        Log.Information("MQTT: Home Assistant availability changed to {EMessageContent}", e.MessageContent);
         var haAvailable = string.Equals(e.MessageContent, OnlineAvailability, StringComparison.OrdinalIgnoreCase);
         if (IsHomeAssistantAvailable == haAvailable)
             return Task.CompletedTask;

@@ -77,7 +77,7 @@ public class Program
             .WriteTo.Console(outputTemplate: "[{Timestamp:dd.MM.yyyy HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}", theme: AnsiConsoleTheme.Sixteen, applyThemeToRedirectedOutput: true)
             .CreateLogger();
 
-        Log.Information($"Starting Portainer Monitor v{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}");
+        Log.Information("Starting Portainer Monitor v{ToString}", Assembly.GetExecutingAssembly().GetName().Version?.ToString(3));
 
         // Load config
         AddonConfig? addonCfg = null;
@@ -113,7 +113,7 @@ public class Program
 
         // Update log level by config
         logLevelSwitch.MinimumLevel = addonCfg.LogLevel;
-        Log.Verbose($"Config:\n{addonCfg.ToJson()}");
+        Log.Verbose("Config:\n{ToJson}", addonCfg.ToJson());
         addonCfg.Validate();
 
         // Init MQTT
@@ -179,7 +179,7 @@ public class Program
                     _ = await agentModel.UpdateAsync().ConfigureAwait(false);
 
                 sw.Stop();
-                Log.Debug($"Updated in {sw.Elapsed.TotalSeconds:0.000}s");
+                Log.Debug("Updated in {ElapsedTotalSeconds:0.000}s", sw.Elapsed.TotalSeconds);
                 var wait = addonCfg.UpdateInterval * 1000 - (int)sw.Elapsed.TotalMilliseconds;
                 if (wait > 5) await Task.Delay(wait, ct).ConfigureAwait(false);
             }

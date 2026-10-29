@@ -165,13 +165,13 @@ internal class PortainerApi : IPortainerApi, IDisposable
             res.ThrowIfError();
 
             var response = _client.Serializers.DeserializeContent<T?>(res);
-            if (response != null) Log.Verbose($"Portainer API `{_config.DisplayName}` `{apiFuncName}` `{req.Resource}`:\n{res.Content}");
+            if (response != null) Log.Verbose("Portainer API {ConfigDisplayName} {ApiFuncName} {ReqResource}:\n{ResContent}", _config.DisplayName, apiFuncName, req.Resource, res.Content);
             return response;
         }
         catch (OperationCanceledException) { return default; }
         catch (Exception err)
         {
-            if (!_ct.IsCancellationRequested) Log.Error(err, $"Portainer API `{_config.DisplayName}` error `{apiFuncName}` `{req.Resource}`");
+            if (!_ct.IsCancellationRequested) Log.Error(err, "Portainer API {ConfigDisplayName} error {ApiFuncName} {ReqResource}", _config.DisplayName, apiFuncName, req.Resource);
             return default;
         }
     }
@@ -185,15 +185,15 @@ internal class PortainerApi : IPortainerApi, IDisposable
             res.ThrowIfError();
             var successful = res.StatusCode is HttpStatusCode.OK or HttpStatusCode.NoContent;
             if (successful)
-                Log.Verbose($"Portainer API `{_config.DisplayName}` `{apiFuncName}` `{req.Resource}` successfully sent ({(int)res.StatusCode})");
+                Log.Verbose("Portainer API {ConfigDisplayName} {ApiFuncName} {ReqResource} successfully sent ({ResStatusCode})", _config.DisplayName, apiFuncName, req.Resource, (int)res.StatusCode);
             else
-                Log.Error($"Portainer API `{_config.DisplayName}` `{apiFuncName}` `{req.Resource}` failed ({(int)res.StatusCode})\n{res.Content}");
+                Log.Error("Portainer API {ConfigDisplayName} {ApiFuncName} {ReqResource} failed ({ResStatusCode})\n{ResContent}", _config.DisplayName, apiFuncName, req.Resource, (int)res.StatusCode, res.Content);
             return successful;
         }
         catch (OperationCanceledException) { return false; }
         catch (Exception err)
         {
-            if (!_ct.IsCancellationRequested) Log.Error(err, $"Portainer API `{_config.DisplayName}` error `{apiFuncName}` `{req.Resource}`");
+            if (!_ct.IsCancellationRequested) Log.Error(err, "Portainer API {ConfigDisplayName} error {ApiFuncName} {ReqResource}", _config.DisplayName, apiFuncName, req.Resource);
             return false;
         }
     }

@@ -165,7 +165,7 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
         foreach (var epKey in removeContainers)
         {
             if (!_containers.TryRemove(epKey, out var ctModel)) continue;
-            Log.Information($"Endpoint: Container `{EndpointFullName}.{ctModel.Name}` became unavailable and has been removed");
+            Log.Information("Endpoint: Container {EndpointFullName}.{CtModelName} became unavailable and has been removed", EndpointFullName, ctModel.Name);
             ctModel.Dispose();
         }
 
@@ -183,12 +183,12 @@ internal abstract class EndpointBase<T> : ModelBase<T> where T : ModelBase
             // before the old one has been removed, which can result in dead HA-entities
             if (_containers.Values.Any(c => string.Equals(c.Name, ctName, StringComparison.OrdinalIgnoreCase)))
             {
-                Log.Information($"Endpoint: Skipped adding container `{EndpointFullName}.{ctName}` because another container with same name already exists");
+                Log.Information("Endpoint: Skipped adding container {EndpointFullName}.{CtName} because another container with same name already exists", EndpointFullName, ctName);
                 continue;
             }
 
             ctModel = new DockerContainerModel<T>(this, ct, ctName);
-            Log.Information($"Endpoint: Container `{EndpointFullName}.{ctModel.Name}` became available and has been added");
+            Log.Information("Endpoint: Container {EndpointFullName}.{CtModelName} became available and has been added", EndpointFullName, ctModel.Name);
             _containers.TryAdd(ctKey, ctModel);
             await ctModel.UpdateAsync(force).ConfigureAwait(false);
         }

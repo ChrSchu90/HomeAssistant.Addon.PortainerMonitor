@@ -271,7 +271,7 @@ internal abstract class ModelBase : IDisposable
         if (Availability == null || isAvailable == _isAvailable) return Task.CompletedTask;
         _isAvailable = isAvailable;
         var availability = _isAvailable.Value ? HaAvailability.IsAvailable : HaAvailability.IsUnavailable;
-        Log.Information($"Availability of `{Availability.Topic}` changed to `{availability}`");
+        Log.Information("Availability of {AvailabilityTopic} changed to {Availability}", Availability.Topic, availability);
         return MqttClient.PublishAsync(Availability.Topic, availability, retain: true);
     }
 
