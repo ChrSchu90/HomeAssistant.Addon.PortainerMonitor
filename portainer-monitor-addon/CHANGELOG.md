@@ -1,4 +1,10 @@
 ﻿## Changelog 🚀
+### 1.3.3
+ - Update base image
+ - Update `RestSharp` to v114.1.0
+ - Update `ConsoleAppFramework` to v5.8.1
+ - Improved log output formatting
+
 ### 1.3.2
  - Update base image to v3.24
  - Update `YamlDotNet` to v18.1.0
